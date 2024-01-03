@@ -1,23 +1,23 @@
 html {
-	/*background-image: url("/background.png");*/
 	background-color: #cdd6e5;
 	color: rgb(50, 50, 50);
-	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-	font-size: 11pt;
 }
 
 #page {
-	--page-pad: 1in;
+	--page-pad: 1cm;
 	margin: auto;
 	vertical-align: middle;
-	background-color: rgba(255, 255, 255, 1.0);
+	background-color: #fdfeff;
 	text-align: justify;
-	margin-top: 32px;
+	margin-top: 40px;
 	padding-top: 8px;
 	padding-left: var(--page-pad);
 	padding-right: var(--page-pad);
 	max-width: calc(210mm - 2 * var(--page-pad));
+	min-width: calc(210mm - 2 * var(--page-pad));
 	box-shadow: 0px 0px 8px black;
+	font-size: 11pt;
+	font-family: 'Noto Serif', serif;
 }
 
 nav {
@@ -26,10 +26,17 @@ nav {
 	top: 0;
 	left: 0;
 	width: 100%;
+	height: 20px;
+	text-size-adjust: auto;
 	background-color: #fdfeff;
 	padding-top: 2px;
 	padding-bottom: 2px;
+	padding-left: 4px;
+	padding-right: 4px;
 	z-index: 99999;
+	font-family: 'Noto Sans', sans-serif;
+	font-size: 11pt;
+	box-shadow: 0px 0px 4px black;
 }
 
 .menuitem {
@@ -45,10 +52,6 @@ nav {
 	text-decoration: none;
 }
 
-.menuitem:visited {
-	color: inherit;
-}
-
 .menuitem:hover {
 	background-image: linear-gradient(0deg, rgba(254,254,255,1) 0%, rgba(240,241,242,1) 49%, rgba(254,255,255,1) 100%);
 	border-radius: 4px;
@@ -58,50 +61,11 @@ nav {
 	transition: all 0.1s;
 }
 
-#menubar-title {
-	display: inline;
-}
 
 #menubar {
 	display: table-cell;
 	vertical-align: middle;
-	/*background: linear-gradient(0deg, #161c2d 0%, #161c2d 3%, #232a3d 3%, #334151 47%, #4c5868 47%, #4c5868 51%, #66737c 95%, #737c84 95%, #737c84 100%)*/;
 }
-
-.gradienter {
-	display: inline-block;
-	background-image:
-		linear-gradient(to right, #58606b, #58606b), /* Top */
-		linear-gradient(to bottom, #545c68 0%, #3c4452 40%, #2b3545 60%, #182236 100%), /* Right */
-		linear-gradient(to left, #000d1d, #000d1d), /* Bottom */
-		linear-gradient(to top, #182236 0%, #2b3545 40%, #3c4452 60%, #545c68 100%); /* Left */
-	background-origin: border-box;
-	background-size: 100% 1px, 1px 100%, 100% 1px, 1px 100%;
-	background-position: top left, top right, bottom right, bottom left;
-	background-repeat: no-repeat;
-	padding: 0px;
-	width: 90px;
-	height: 33px;
-	
-	margin-top: 2px;
-	margin-bottom: 2px;
- }
-
- .gradienter:hover {
-	background-image:
-		linear-gradient(to right, #424b5e, #424b5e), /* Top */
-		linear-gradient(to bottom, #3d465a 0%, #292e4d 40%, #1b223b 60%, #0d142b 100%), /* Right */
-		linear-gradient(to left, #0d0625, #0d0625), /* Bottom */
-		linear-gradient(to top, #0d142b 0%, #1b223b 40%, #292e4d 60%, #3d465a 100%); /* Left */
- }
-
- .gradienter:active {
-	background-image:
-		linear-gradient(to right, #030305, #030305), /* Top */
-		linear-gradient(to bottom, #000615, #000615), /* Right */
-		linear-gradient(to left, #707277, #707277), /* Bottom */
-		linear-gradient(to top, #000615, #000615); /* Left */
- }
 
 img {
 	padding: 0 !important;
@@ -134,12 +98,11 @@ figcaption {
 
 h1 {
 	text-align: center !important;
-	font-size: 2.5em !important;
+	font-size: 36pt !important;
+	font-family: 'Noto Sans', sans-serif;
 }
 
-pre {
-	color: rgb(50, 50, 50);
-}
+/* Pandoc Syntax Highlighting */
 
 pre > code.sourceCode { white-space: pre; position: relative; }
 pre > code.sourceCode > span { line-height: 1.25; }
