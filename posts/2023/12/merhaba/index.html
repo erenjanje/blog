@@ -1,48 +1,70 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<title>Merhaba</title>
-		<meta charset="utf-8"/>
-		<link rel="preconnect" href="https://fonts.googleapis.com">
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-		<link href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" rel="stylesheet"> 
-		<link href="https://fonts.googleapis.com/css2?family=Noto+Serif&display=swap" rel="stylesheet">
-		<link rel="stylesheet" href="/main.css"/>
-	</head>
-	<body>
-		<nav>
-			<div id='menubar'>
-				<a class='menuitem' href='/'>Ana Sayfa</a>
-				<a class='menuitem' href='/posts'>Gönderiler</a>
-				<a class='menuitem' href='/labels'>Etiketler</a>
-				<a class='menuitem' href='/about'>Hakkımda</a>
-			</div>
-		</nav>
-	<div id='page'>
-		<div id="content">
-			<h1>Merhaba</h1>
-			<hr/>
-			<!---
-giriş, örnek
--->
+    <head>
+        <title>Aşırı uzun bir başlık yapayım da sığmasın</title>
+        <meta charset="utf-8"/>
+        <link rel="preconnect" href="https://fonts.googleapis.com"/>
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" rel="stylesheet"/> 
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Serif&display=swap" rel="stylesheet"/>
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Mono&display=swap" rel="stylesheet"/>
+        <link rel="stylesheet" href="/main.css"/>
+    </head>
+    <body>
+        <!--
+        <nav>
+            <menu-item>
+                <input type='checkbox' id='file-checker' class='menu-checker'/>
+                <label id='file-label' for='file-checker' class='menu-label'>Dosya</label>
+                <menu>
+                    <menu-option>
+                        <a href='/'>Ana Sayfa</a> 
+                    </menu-option>
+                    <menu-option>
+                        <a href='/posts'>Gönderiler</a>
+                    </menu-option>
+                </menu>
+            </menu-item>
+            <menu-item>
+                <input type='checkbox' id='apps-checker' class='menu-checker'/>
+                <label id='apps-label' for='apps-checker' class='menu-label'>Uygulamalar</label>
+                <menu>
+                    <menu-option has-seperator>
+                        <a href='/apps/webgl-raytracer'>WebGL Işın İzleyici</a>
+                    </menu-option>
+                    <menu-option>
+                        <a href='/apps/rpl-calculator'>Hesap Makinesi</a>
+                    </menu-option>
+                </menu>
+            </menu-item>
+        </nav>
+        -->
+        <div id='panels'>
+            <div id='posts'>
+            </div>
+            <div id='page'>
+                <div id="content">
+                    <h1>Aşırı uzun bir başlık yapayım da sığmasın</h1>
+                    <hr/>
+                    <!--- Aşırı uzun bir başlık yapayım da sığmasın; giriş, örnek -->
 <p>Merhaba arkadaşlar bugün sizlerle birlikte Minecraft
 oynamayacağız.</p>
 <p>Bu deneme postunu şu an neovimden yazıyorum. Piton betiği ile
 derleyecem ve yükleyecem muhtemelen bir ara.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;stdio.h&gt;</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span> <span class="op">{</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    printf<span class="op">(</span><span class="st">&quot;Hello, World!</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">);</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p>Bu bir <code>C</code> kodu örneğidir.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> main():</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&#39;Hello, World!&#39;</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">&#39;__main__&#39;</span>:</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    main()</span></code></pre></div>
+<p>Bu bir <code>Python</code> kodu örneğidir.</p>
 <figure>
 <img src="./background.png" alt="Ana sayfa" />
 <figcaption aria-hidden="true">Ana sayfa</figcaption>
 </figure>
 <p>Aha <a href="https://example.com">bu da</a> bir link.</p>
 <p>Hem <strong>kalın</strong> hem <em>ince</em> yazmak güzel.</p>
-<p>hah. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+<p>hah.</p>
+<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
 eiusmod tempor incididunt ut labore et dolore magna aliqua. Nulla
 pellentesque dignissim enim sit. Ullamcorper dignissim cras tincidunt
 lobortis feugiat. Enim ut sem viverra aliquet eget. Consequat mauris
@@ -102,12 +124,33 @@ tincidunt. Ut ornare lectus sit amet est. Quis viverra nibh cras
 pulvinar mattis nunc sed. Senectus et netus et malesuada fames ac
 turpis.</p>
 
-		</div>
-		<hr/>
-		<footer>
-		<p>Oluşturulma Zamanı:<br/>3.01.2024<br/>15:48:11+0300</p>
-		</footer>
-		<br/>
-	</div>
-	</body>
+                </div>
+                <hr/>
+                <footer>
+                    <p>Oluşturulma Zamanı<br/>2024-01-05<br/>01:36:17<br/>UTC+0300</p><p>Değiştirilme Zamanı<br/>2024-01-06<br/>11:11:32<br/>UTC+0300</p>
+                </footer>
+                <br/>
+            </div>
+            <div id='labels'>
+                <post-list>
+                <h2>Gönderiler</h2>
+                <a href='/'>Ana Sayfa</a>
+                
+            <details>
+                <summary>2023</summary>
+                
+            <details>
+                <summary>12</summary>
+                <a href="/posts/2023/12/merhaba">Aşırı uzun bir başlık yapayım da sığmasın</a>
+            </details>
+            
+            </details>
+            
+                </post-list>
+                <label-list>
+                <h2>Etiketler</h2>
+                </label-list>
+            </div>
+        </div>
+    </body>
 </html>
