@@ -3,11 +3,7 @@
     <head>
         <title>Aşırı uzun bir başlık yapayım da sığmasın</title>
         <meta charset="utf-8"/>
-        <link rel="preconnect" href="https://fonts.googleapis.com"/>
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" rel="stylesheet"/> 
-        <link href="https://fonts.googleapis.com/css2?family=Noto+Serif&display=swap" rel="stylesheet"/>
-        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Mono&display=swap" rel="stylesheet"/>
+        <link rel="stylesheet" href="/pandoc.css"/>
         <link rel="stylesheet" href="/main.css"/>
     </head>
     <body>
@@ -40,13 +36,11 @@
         </nav>
         -->
         <div id='panels'>
-            <div id='posts'>
-            </div>
             <div id='page'>
                 <div id="content">
                     <h1>Aşırı uzun bir başlık yapayım da sığmasın</h1>
                     <hr/>
-                    <!--- Aşırı uzun bir başlık yapayım da sığmasın; giriş, örnek -->
+                    <!-- Aşırı uzun bir başlık yapayım da sığmasın; Giriş, Örnek -->
 <p>Merhaba arkadaşlar bugün sizlerle birlikte Minecraft
 oynamayacağız.</p>
 <p>Bu deneme postunu şu an neovimden yazıyorum. Piton betiği ile
@@ -64,6 +58,10 @@ derleyecem ve yükleyecem muhtemelen bir ara.</p>
 <p>Aha <a href="https://example.com">bu da</a> bir link.</p>
 <p>Hem <strong>kalın</strong> hem <em>ince</em> yazmak güzel.</p>
 <p>hah.</p>
+<p>Aha bu da bir formül</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo>=</mo><mfrac><mrow><mo>−</mo><mi>b</mi><mo>±</mo><msqrt><mrow><msup><mi>b</mi><mn>2</mn></msup><mo>−</mo><mn>4</mn><mi>a</mi><mi>c</mi></mrow></msqrt></mrow><mrow><mn>2</mn><mi>a</mi></mrow></mfrac></mrow><annotation encoding="application/x-tex">
+x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}
+</annotation></semantics></math></p>
 <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
 eiusmod tempor incididunt ut labore et dolore magna aliqua. Nulla
 pellentesque dignissim enim sit. Ullamcorper dignissim cras tincidunt
@@ -127,28 +125,50 @@ turpis.</p>
                 </div>
                 <hr/>
                 <footer>
-                    <p>Oluşturulma Zamanı<br/>2024-01-05<br/>01:36:17<br/>UTC+0300</p><p>Değiştirilme Zamanı<br/>2024-01-06<br/>11:11:32<br/>UTC+0300</p>
+                    <p>Oluşturulma Zamanı<br/>2024-01-07<br/>11:20:59<br/>UTC+0300</p><p>Değiştirilme Zamanı<br/>2024-01-07<br/>12:17:11<br/>UTC+0300</p>
+                    <label-list>
+                        <p>Etiketler<br/>- Giriş<br/>- Örnek</p>
+                    </label-list>
                 </footer>
-                <br/>
             </div>
             <div id='labels'>
                 <post-list>
                 <h2>Gönderiler</h2>
-                <a href='/'>Ana Sayfa</a>
+                <a href='/' class="sidebar-link">Ana Sayfa</a>
                 
-            <details>
-                <summary>2023</summary>
-                
-            <details>
-                <summary>12</summary>
-                <a href="/posts/2023/12/merhaba">Aşırı uzun bir başlık yapayım da sığmasın</a>
-            </details>
-            
-            </details>
-            
+			<details >
+				<summary>2022</summary>
+				
+			<details >
+				<summary>05</summary>
+					<sidebar-link-container>
+					<a href="/posts/2022/05/zort" class="sidebar-link">- Hah</a>
+					</sidebar-link-container>
+			</details>
+			
+			</details>
+			
+
+			<details open="open">
+				<summary>2023</summary>
+				
+			<details open="open">
+				<summary>12</summary>
+					<sidebar-link-container>
+					<a href="/posts/2023/12/merhaba" class="sidebar-link">- Aşırı uzun bir başlık yapayım da sığmasın</a>
+					</sidebar-link-container>
+			</details>
+			
+			</details>
+			
                 </post-list>
                 <label-list>
                 <h2>Etiketler</h2>
+                <details><summary>(2) Giriş</summary><sidebar-link-container><a href="/posts/2022/05/zort" class="sidebar-link">- Hah</a><a href="/posts/2023/12/merhaba" class="sidebar-link">- Aşırı uzun bir başlık yapayım da sığmasın</a></sidebar-link-container></details>
+<details><summary>(1) hah</summary><sidebar-link-container><a href="/" class="sidebar-link">- Ana Sayfa</a></sidebar-link-container></details>
+<details><summary>(1) Örnek</summary><sidebar-link-container><a href="/posts/2023/12/merhaba" class="sidebar-link">- Aşırı uzun bir başlık yapayım da sığmasın</a></sidebar-link-container></details>
+<details><summary>(1) Zort</summary><sidebar-link-container><a href="/posts/2022/05/zort" class="sidebar-link">- Hah</a></sidebar-link-container></details>
+
                 </label-list>
             </div>
         </div>
