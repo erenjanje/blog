@@ -156,3 +156,7 @@ footer, label-list {
 footer > p {
     text-align: center;
 }
+
+summary.current-tag {
+    color: darkgoldenrod;
+}
