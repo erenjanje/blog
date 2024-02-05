@@ -1,7 +1,8 @@
 html {
-    /*background-color: #cdd6e5;*/
-    background-image: url('/tahta4.jpg');
+    background-color: #cdd6e5;
+    /* background-image: url('/tahta4.jpg'); */
     color: #000;
+    font-size: 14pt;
 
     --monospace-font: 'Lucida Console', monospace;
     --sans-font: 'Arial', sans-serif;
@@ -23,10 +24,9 @@ body {
     padding-right: var(--page-pad);
     max-width: var(--page-size);
     min-width: var(--page-size);
-    font-size: 12pt;
     font-family: var(--serif-font);
     box-shadow: 0px 0px 8px black;
-    background-image: var(--page-background);
+    /* background-image: var(--page-background); */
 }
 
 #panels {
@@ -68,7 +68,7 @@ body {
     background-color: #fdfeff;
     z-index: 0;
     box-shadow: 0px 0px 8px black;
-    background-image: var(--page-background);
+    /* background-image: var(--page-background); */
 }
 
 post-list {
@@ -160,7 +160,7 @@ figure, div.sourceCode {
 
 code.sourceCode {
     font-family: var(--monospace-font);
-    font-size: 10pt;
+    font-size: 14pt;
 }
 
 summary {
