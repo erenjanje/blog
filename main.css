@@ -34,10 +34,10 @@ body {
     --panel-margin: 32px;
     --page-pad: 1cm;
     --side-pad: 12px;
-    --page-total-size: 210mm;
+    --page-total-size: 250mm;
     /*--page-total-size: calc(min(100vw * (1080 / 1920), 1080px));*/
     /*--side-total-size: calc(min((100vw - var(--page-total-size) - 2 * var(--page-margin) - 2*var(--panel-margin)) / 2, 720px));*/
-    --side-total-size: 60mm;
+    --side-total-size: 80mm;
     --page-size: calc(var(--page-total-size) - 2 * var(--page-pad));
     --side-size: calc(var(--side-total-size) - 2 * var(--side-pad));
     --page-left-margin: calc((100vw - var(--page-total-size) - 2*var(--page-pad)) / 2);
