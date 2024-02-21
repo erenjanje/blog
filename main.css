@@ -6,7 +6,7 @@ html {
 
     --monospace-font: 'Lucida Console', monospace;
     --sans-font: 'Arial', sans-serif;
-    --serif-font: 'Georgia', serif;
+    --serif-font: 'Noto Serif', serif;
     --page-background: url('/kağıt-beyaz.jpg');
     --carved-page-background: url('/kağıt2.jpg');
 }
