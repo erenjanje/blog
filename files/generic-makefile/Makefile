@@ -1,5 +1,3 @@
-# Helper functions
-rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 
 # Programs
 COMPILER := g++
@@ -9,10 +7,20 @@ EMPTY_ECHO := echo
 RUNNER :=
 
 # Extensions
-SRC_EXTENSION := cpp
-OBJ_EXTENSION := o
-STATIC_LIB_EXTENSION := a
-DYNAMIC_LIB_EXTENSION := so
+SRC_EXTENSION := .cpp
+OBJ_EXTENSION := .o
+DEPENDS_EXTENSION := .d
+STATIC_LIB_EXTENSION := .a
+DYNAMIC_LIB_EXTENSION := .so
+
+# Helper functions
+rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
+makewithdirext=$(patsubst $2%$3,$4%$5,$1)
+makeobj=$(call makewithdirext,$1,$(SRCDIR),$(SRC_EXTENSION),$(OBJDIR),$(OBJ_EXTENSION))
+makedepend=$(call makewithdirext,$1,$(SRCDIR),$(SRC_EXTENSION),$(DEPENDDIR),$(DEPENDS_EXTENSION))
+makestatic=$(call makewithdirext,$1,$(LIBDIR)lib,$(STATIC_LIB_EXTENSION),,)
+makedynamic=$(call makewithdirext,$1,$(LIBDIR)lib,$(DYNAMIC_LIB_EXTENSION),,)
+map=$(foreach e,$2,$(call $1,$e))
 
 # Directories
 SRCDIR := source/
@@ -24,16 +32,20 @@ BINDIR := $(BUILDDIR)bin/
 DEPENDDIR := depends/
 
 # Files
-SRCS := $(call rwildcard,$(SRCDIR),*.$(SRC_EXTENSION))
-OBJS := $(SRCS:$(SRCDIR)%.$(SRC_EXTENSION)=$(OBJDIR)%.$(OBJ_EXTENSION))
-DEPENDS := $(SRCS:$(SRCDIR)%.$(SRC_EXTENSION)=$(DEPENDDIR)%.d)
-STATIC_LIBS := $(call rwildcard,$(LIBDIR),*.$(STATIC_LIB_EXTENSION))
-DYNAMIC_LIBS := $(call rwildcard,$(LIBDIR),*.$(DYNAMIC_LIB_EXTENSION))
+SRCS := $(call rwildcard,$(SRCDIR),*$(SRC_EXTENSION))
+STATIC_LIBS := $(call rwildcard,$(LIBDIR),*$(STATIC_LIB_EXTENSION))
+DYNAMIC_LIBS := $(call rwildcard,$(LIBDIR),*$(DYNAMIC_LIB_EXTENSION))
+
+# Processed files
+OBJS := $(call map,makeobj,$(SRCS))
+DEPENDS := $(call map,makedepend,$(SRCS))
 
 # Compiler options
-DEBUG :=
+DEBUG := T
 OPTIMIZATION_LEVEL := $(if $(DEBUG),g,3)
-ERRORS := no-unused-parameter no-unknown-pragmas all extra
+ENABLED_WARNINGS := all extra
+DISABLED_WARNINGS := unused-parameter unknown-pragmas
+ERRORS := $(ENABLED_WARNINGS) $(DISABLED_WARNINGS:%=no-%)
 DEFINES := $(if $(DEBUG),DEBUG,RELEASE) GLFW_INCLUDE_NONE
 FLAGS := openmp modules-ts PIC $(if $(DEBUG),sanitize=leak,)
 STANDARD := c++20
@@ -49,7 +61,7 @@ _FLAGS := $(FLAGS:%=-f%)
 _STANDARD := $(STANDARD:%=-std=%)
 
 # Make the linker options suitable flags
-FOUND_LIBS := $(STATIC_LIBS:$(LIBDIR)lib%.$(STATIC_LIB_EXTENSION)=%) $(DYNAMIC_LIBS:$(LIBDIR)lib%.$(DYNAMIC_LIB_EXTENSION)=%)
+FOUND_LIBS := $(call map,makestatic,$(STATIC_LIBS))
 _ALL_LIBS := $(FOUND_LIBS) $(LIBS)
 _LIBS := $(_ALL_LIBS:%=-l%)
 
@@ -67,12 +79,13 @@ run: build
 .PHONY: run
 
 debug:
-	@echo $(LDFLAGS)
+	@echo $(FOUND_LIBS)
+	@echo $(DEPENDS)
 .PHONY: debug
 
 build: $(OBJS)
 	@echo LINKING $(EXECNAME)
-	@$(COMPILER) $(filter-out %.h,$(filter-out %.hpp,$(filter-out %.hpp.gch,$^))) -o $(BINDIR)$(EXECNAME) $(LDFLAGS)
+	@$(COMPILER) $^ -o $(BINDIR)$(EXECNAME) $(LDFLAGS)
 .PHONY: build
 
 clean:
@@ -80,13 +93,11 @@ clean:
 	@$(RM) $(OBJS)
 .PHONY: clean
 
--include $(DEPENDS)
-
-$(OBJDIR)%.$(OBJ_EXTENSION) $(DEPENDDIR)%.d: $(SRCDIR)%.$(SRC_EXTENSION)
+$(OBJDIR)%$(OBJ_EXTENSION) $(DEPENDDIR)%$(DEPENDS_EXTENSION): $(SRCDIR)%$(SRC_EXTENSION)
 	@echo COMPILE $<
 	@$(MKDIR) $(patsubst $(SRCDIR)%,$(OBJDIR)%,$(^D))
 	@$(MKDIR) $(patsubst $(SRCDIR)%,$(DEPENDDIR)%,$(^D))
-	@-$(COMPILER) $(CXXFLAGS) -MMD -MP -MF $(patsubst $(SRCDIR)%.$(SRC_EXTENSION),$(DEPENDDIR)%.d,$<) -c $< -o $@
+	@-$(COMPILER) $(CXXFLAGS) -MMD -MP -MF $(call makedepend,$<) -c $< -o $(call makeobj,$<)
 
 init:
 	@echo "Initializing Folders"
@@ -99,3 +110,5 @@ init:
 	@$(MKDIR) $(DEPENDDIR)
 	@echo "Initialization Completed"
 .PHONY: init
+
+-include $(DEPENDS)
