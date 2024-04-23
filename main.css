@@ -193,6 +193,7 @@ figure,
 div.sourceCode {
     background-image: linear-gradient(#F0F1F2 0%, #F0F1F2 calc(100% - 100px), #FFFFFF 100%);
     box-shadow: var(--item-shadow);
+    border-radius: 4px;
     /* background-image: var(--carved-page-background); */
     padding: 16px;
 }
