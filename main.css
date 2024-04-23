@@ -258,7 +258,7 @@ summary.current-tag {
 @media (width <=932px) or (orientation: portrait) {
     body {
         --page-pad: 8px;
-        --page-width: calc(100vw - 2*var(--page-pad));
+        --page-width: calc(100vw - 2*var(--page-pad) - (100vw - 100%));
     }
 
     #page {
