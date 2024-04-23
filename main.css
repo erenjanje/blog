@@ -2,7 +2,7 @@ html {
     color: #000;
     font-size: 13pt;
 
-    --monospace-font: 'Lucida Console', monospace;
+    --monospace-font: 'Fantasque Sans Mono', 'Consolas', 'Lucida Console', monospace;
     --sans-font: 'Segoe UI', sans-serif;
     --serif-font: 'Segoe UI', serif;
     --page-background: url('/kağıt-beyaz.jpg');
@@ -191,8 +191,8 @@ h2 {
 
 figure,
 div.sourceCode {
-    /* background-image: linear-gradient(#E0E1E2 0%, #F0F1F2 200px, #F0F1F2 calc(100% - 200px), #E0E1E2 100%); */
-    /* box-shadow: var(--item-shadow); */
+    background-image: linear-gradient(#F0F1F2 0%, #F0F1F2 calc(100% - 100px), #FFFFFF 100%);
+    box-shadow: var(--item-shadow);
     /* background-image: var(--carved-page-background); */
     padding: 16px;
 }
@@ -209,7 +209,7 @@ label-list>p {
 
 code.sourceCode {
     font-family: var(--monospace-font);
-    font-size: 14pt;
+    font-size: 12pt;
 }
 
 summary {
