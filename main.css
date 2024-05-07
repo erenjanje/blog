@@ -35,6 +35,7 @@ body {
     flex-direction: column;
     vertical-align: middle;
     margin: auto;
+    hyphens: auto;
 }
 
 #page {
