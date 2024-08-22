@@ -1,17 +1,10 @@
-
-# Programs
-COMPILER := g++
-RM := rm -f
-MKDIR := mkdir -p
-EMPTY_ECHO := echo
-RUNNER :=
-
-# Extensions
-SRC_EXTENSION := .cpp
-OBJ_EXTENSION := .o
-DEPENDS_EXTENSION := .d
-STATIC_LIB_EXTENSION := .a
-DYNAMIC_LIB_EXTENSION := .so
+# Constants and Logic
+TRUE := T
+FALSE :=
+NOT = $(if $1,$(FALSE),$(TRUE))
+EMPTY :=
+BACKSLASH := \$(EMPTY)
+QUOTE := "
 
 # Helper functions
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
@@ -21,94 +14,147 @@ makedepend=$(call makewithdirext,$1,$(SRCDIR),$(SRC_EXTENSION),$(DEPENDDIR),$(DE
 makestatic=$(call makewithdirext,$1,$(LIBDIR)lib,$(STATIC_LIB_EXTENSION),,)
 makedynamic=$(call makewithdirext,$1,$(LIBDIR)lib,$(DYNAMIC_LIB_EXTENSION),,)
 map=$(foreach e,$2,$(call $1,$e))
+backslashize = $(subst /,$(BACKSLASH),$1)
+
+# OS-specific variables and functions
+ifeq ($(OS),Windows_NT)
+
+IS_WINDOWS := $(TRUE)
+MKDIR = $(if $1,if not exist $(QUOTE)$1$(QUOTE) mkdir $(QUOTE)$1$(QUOTE))
+REMOVE = $(if $1,del /Q "$(call backslashize,$1)")
+ECHO = $(if $1,echo $1,echo.)
+STATIC_LIB_EXTENSION := .lib
+DYNAMIC_LIB_EXTENSION := .dll
+TOUCH = type nul >>"$(call backslashize,$1)" & copy "$(call backslashize,$1)" +,, >nul
+EXEC_EXTENSION := .exe
+
+else
+
+IS_WINDOWS := $(FALSE)
+MKDIR = $(if $1,mkdir -p "$1")
+REMOVE = $(if $1,rm -rf "$1")
+ECHO = echo "$1"
+STATIC_LIB_EXTENSION := .lib
+DYNAMIC_LIB_EXTENSION := .so
+TOUCH = touch $1
+EXEC_EXTENSION :=
+
+endif
+
+# Programs
+COMPILER := g++
+EMPTY_ECHO := echo ""
+RUNNER :=
+
+# Extensions
+SRC_EXTENSION := .cpp
+OBJ_EXTENSION := .o
+DEPENDS_EXTENSION := .d
 
 # Directories
 SRCDIR := source/
-INCDIR := $(SRCDIR)
-LIBDIR := lib/
+INCDIR := source/
 BUILDDIR := build/
 OBJDIR := $(BUILDDIR)objects/
 BINDIR := $(BUILDDIR)bin/
-DEPENDDIR := depends/
+LIBDIR := libs/
+DEPENDDIR := $(BUILDDIR)depends/
+BASE_DIRS := $(sort $(SRCDIR) $(INCDIR) $(BUILDDIR) $(OBJDIR) $(BINDIR) $(LIBDIR) $(DEPENDDIR))
+
+# Output Options
+EXECNAME := main
+ARGS := 
 
 # Files
 SRCS := $(call rwildcard,$(SRCDIR),*$(SRC_EXTENSION))
 STATIC_LIBS := $(call rwildcard,$(LIBDIR),*$(STATIC_LIB_EXTENSION))
 DYNAMIC_LIBS := $(call rwildcard,$(LIBDIR),*$(DYNAMIC_LIB_EXTENSION))
+ALL_OBJS := $(call rwildcard,$(OBJDIR),*$(OBJ_EXTENSION))
+DIRS := $(sort $(dir $(SRCS)))
+DEPEND_DIRS := $(DIRS:$(SRCDIR)%=$(DEPENDDIR)%)
+OBJECT_DIRS := $(DIRS:$(SRCDIR)%=$(OBJDIR)%)
+EXECUTABLE := $(BINDIR)$(EXECNAME)$(EXEC_EXTENSION)
+MAIN_FILE := $(SRCDIR)$(EXECNAME)$(SRC_EXTENSION)
+
+# Compiler options
+DEBUG := $(TRUE)
+OPTIMIZATION_LEVEL := $(if $(DEBUG),0,3)
+ENABLED_WARNINGS := all extra
+DISABLED_WARNINGS := unused-parameter unknown-pragmas
+ERRORS := $(ENABLED_WARNINGS) $(DISABLED_WARNINGS:%=no-%)
+DEFINES := $(if $(DEBUG),DEBUG,RELEASE) _GLIBCXX_HAVE_STACKTRACE
+FLAGS := PIC $(if $(DEBUG),lto) $(if $(and $(DEBUG),$(call NOT,$(IS_WINDOWS))),sanitize=leak sanitize=address)
+STANDARD := c++20
+
+# Linker options
+LIBS := m gdi32 comdlg32 comctl32 uuid oleaut32 ole32 dwmapi user32 dbghelp
+
+# Make the options suitable for passing to compiler/flagize them
+_DEBUG := $(if $(DEBUG),-g3 -gdwarf-2)
+_ERRORS := $(ERRORS:%=-W%)
+_DEFINES := $(DEFINES:%=-D%)
+_FLAGS := $(FLAGS:%=-f%)
+_STANDARD := -std=$(STANDARD)
+
+# Make the linker options to suitable flags
+_FOUND_LIBS_STATIC := $(call map,makestatic,$(STATIC_LIBS))
+_FOUND_LIBS_DYNAMIC := $(call map,makedynamic,$(DYNAMIC_LIBS))
+_FOUND_LIBS := $(_FOUND_LIBS_STATIC) $(_FOUND_LIBS_DYNAMIC)
+FOUND_LIBS_STATIC_PREFIX := $(basename $(notdir $(_FOUND_LIBS)))
+FOUND_LIBS := $(FOUND_LIBS_STATIC_PREFIX) $(basename $(notdir $(_FOUND_LIBS_DYNAMIC)))
+_LIB_DIRS := $(sort $(dir $(_FOUND_LIBS)))
+LIB_DIRS := $(_LIB_DIRS:%=-L"%")
+LIBS_FLAG := $(LIBS:%=-l%)
+FOUND_LIBS_FLAG := $(FOUND_LIBS:%=-l"%")
+_LIBS := $(FOUND_LIBS_FLAG) $(LIBS_FLAG)
+
+CFLAGS := -I"./$(INCDIR)" -O$(OPTIMIZATION_LEVEL) $(_DEFINES) $(_STANDARD) $(_FLAGS) $(_ERRORS) $(_DEBUG) $(STACKTRACE)
+LDFLAGS := $(CFLAGS) $(LIB_DIRS) $(_LIBS)
 
 # Processed files
 OBJS := $(call map,makeobj,$(SRCS))
 DEPENDS := $(call map,makedepend,$(SRCS))
 
-# Compiler options
-DEBUG := T
-OPTIMIZATION_LEVEL := $(if $(DEBUG),g,3)
-ENABLED_WARNINGS := all extra
-DISABLED_WARNINGS := unused-parameter unknown-pragmas
-ERRORS := $(ENABLED_WARNINGS) $(DISABLED_WARNINGS:%=no-%)
-DEFINES := $(if $(DEBUG),DEBUG,RELEASE) GLFW_INCLUDE_NONE
-FLAGS := openmp modules-ts PIC $(if $(DEBUG),sanitize=leak,)
-STANDARD := c++20
-
-# Linker options
-LIBS := m glfw
-
-# Make the options suitable for passing to compiler/flagize them
-_DEBUG := $(if $(DEBUG),-g,)
-_ERRORS := $(ERRORS:%=-W%)
-_DEFINES := $(DEFINES:%=-D%)
-_FLAGS := $(FLAGS:%=-f%)
-_STANDARD := $(STANDARD:%=-std=%)
-
-# Make the linker options suitable flags
-FOUND_LIBS := $(call map,makestatic,$(STATIC_LIBS))
-_ALL_LIBS := $(FOUND_LIBS) $(LIBS)
-_LIBS := $(_ALL_LIBS:%=-l%)
-
-CXXFLAGS := -I"./$(INCDIR)" -O$(OPTIMIZATION_LEVEL) $(_DEFINES) $(_STANDARD) $(_FLAGS) $(_ERRORS)
-LDFLAGS := $(CXXFLAGS) -L"$(LIBDIR)" $(_LIBS)
-
-EXECNAME := main
-ARGS := 
-
-run: build
-	@echo RUNNING $(EXECNAME)
-	@echo ===================
-	@$(EMPTY_ECHO)
-	@$(BINDIR)$(EXECNAME) $(ARGS)
+run: $(EXECUTABLE)
+	@$(call ECHO,RUNNING $(EXECNAME))
+	@$(call ECHO,===================)
+	@$(call ECHO,)
+	@$(EXECUTABLE) $(ARGS)
 .PHONY: run
 
-debug:
-	@echo $(FOUND_LIBS)
-	@echo $(DEPENDS)
-.PHONY: debug
+$(EXECUTABLE): $(OBJS) | $(BINDIR)
+	@$(call ECHO,LINKING $(EXECNAME))
+	@$(COMPILER) $^ -o $(EXECUTABLE) $(LDFLAGS)
 
-build: $(OBJS)
-	@echo LINKING $(EXECNAME)
-	@$(COMPILER) $^ -o $(BINDIR)$(EXECNAME) $(LDFLAGS)
+build: $(EXECUTABLE)
 .PHONY: build
 
+all: build
+.PHONY: all
+
 clean:
-	@echo RM $(OBJS)
-	@$(RM) $(OBJS)
+	@echo RM $(ALL_OBJS)
+	$(foreach o,$(ALL_OBJS),$(call REMOVE,$o))
 .PHONY: clean
 
-$(OBJDIR)%$(OBJ_EXTENSION) $(DEPENDDIR)%$(DEPENDS_EXTENSION): $(SRCDIR)%$(SRC_EXTENSION)
-	@echo COMPILE $<
-	@$(MKDIR) $(patsubst $(SRCDIR)%,$(OBJDIR)%,$(^D))
-	@$(MKDIR) $(patsubst $(SRCDIR)%,$(DEPENDDIR)%,$(^D))
-	@-$(COMPILER) $(CXXFLAGS) -MMD -MP -MF $(call makedepend,$<) -c $< -o $(call makeobj,$<)
+DEPEND_FILE = $(patsubst $(SRCDIR)%$(SRC_EXTENSION),$(DEPENDDIR)%$(DEPENDS_EXTENSION),$<)
+OBJ_FILE = $(patsubst $(SRCDIR)%$(SRC_EXTENSION),$(OBJDIR)%$(OBJ_EXTENSION),$<)
+$(OBJDIR)%$(OBJ_EXTENSION) $(DEPENDDIR)%$(DEPENDS_EXTENSION): $(SRCDIR)%$(SRC_EXTENSION) | $(OBJECT_DIRS) $(DEPEND_DIRS)
+	@$(call ECHO,COMPILE $<)
+	@$(COMPILER) $(CFLAGS) -MMD -MP -MF $(DEPEND_FILE) -c $< -o $(OBJ_FILE)
 
-init:
-	@echo "Initializing Folders"
-	@$(MKDIR) $(SRCDIR)
-	@$(MKDIR) $(INCDIR)
-	@$(MKDIR) $(OBJDIR)
-	@$(MKDIR) $(LIBDIR)
-	@$(MKDIR) $(BUILDDIR)
-	@$(MKDIR) $(BINDIR)
-	@$(MKDIR) $(DEPENDDIR)
-	@echo "Initialization Completed"
+ALL_DIRS := $(sort $(OBJECT_DIRS) $(DEPEND_DIRS) $(BASE_DIRS))
+$(ALL_DIRS):
+	@$(call ECHO,MKDIR $@)
+	@mkdir "$(call backslashize,$@)"
+
+init: $(BASE_DIRS)
+	@$(call ECHO,Initializing Folders)
+	@$(call ECHO,Initialization Completed)
 .PHONY: init
 
--include $(DEPENDS)
+debug:
+	@$(call ECHO,$(DEPENDS))
+.PHONY: debug
+
+-include $(wildcard $(DEPENDS))
