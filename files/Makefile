@@ -14,7 +14,6 @@ makedepend=$(call makewithdirext,$1,$(SRCDIR),$(SRC_EXTENSION),$(DEPENDDIR),$(DE
 makestatic=$(call makewithdirext,$1,$(LIBDIR)lib,$(STATIC_LIB_EXTENSION),,)
 makedynamic=$(call makewithdirext,$1,$(LIBDIR)lib,$(DYNAMIC_LIB_EXTENSION),,)
 map=$(foreach e,$2,$(call $1,$e))
-backslashize = $(subst /,$(BACKSLASH),$1)
 
 # OS-specific variables and functions
 ifeq ($(OS),Windows_NT)
@@ -27,6 +26,7 @@ STATIC_LIB_EXTENSION := .lib
 DYNAMIC_LIB_EXTENSION := .dll
 TOUCH = type nul >>"$(call backslashize,$1)" & copy "$(call backslashize,$1)" +,, >nul
 EXEC_EXTENSION := .exe
+backslashize = $(subst /,$(BACKSLASH),$1)
 
 else
 
@@ -38,6 +38,7 @@ STATIC_LIB_EXTENSION := .lib
 DYNAMIC_LIB_EXTENSION := .so
 TOUCH = touch $1
 EXEC_EXTENSION :=
+backslashize = $1
 
 endif
 
