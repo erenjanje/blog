@@ -5,6 +5,11 @@ td {
    border-collapse: collapse;
 }
 
+th {
+   background-color: darkgray;
+   color: white;
+}
+
 tr:nth-child(odd) {
    background-color: lightgray;
 }
