@@ -236,6 +236,20 @@ summary.current-tag {
     color: green;
 }
 
+table {
+    border: 1px solid black;
+    padding: 0px;
+}
+
+tr, td {
+    margin: 0px;
+    padding: 0px;
+}
+
+tr:nth-child(even) {
+    background-color: #ddd;
+}
+
 @media (width > 932px) {
     body {
         --page-pad: 36px;
