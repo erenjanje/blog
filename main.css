@@ -239,6 +239,16 @@ summary.current-tag {
 table {
     border: 1px solid black;
     padding: 0px;
+    border-collapse: collapse;
+}
+
+td, th {
+    border: 1px solid black;
+    text-align: left;
+}
+
+tr:hover {
+    background-color: #aaa;
 }
 
 tr, td {
