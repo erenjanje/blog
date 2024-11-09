@@ -247,6 +247,11 @@ td, th {
     text-align: left;
 }
 
+th {
+    background-color: #000;
+    color: #fff;
+}
+
 tr:hover {
     background-color: #aaa;
 }
@@ -258,6 +263,10 @@ tr, td {
 
 tr:nth-child(even) {
     background-color: #ddd;
+}
+
+tr:nth-child(even):hover {
+    background-color: #aaa;
 }
 
 @media (width > 932px) {
