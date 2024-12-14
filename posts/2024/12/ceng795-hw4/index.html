@@ -863,10 +863,18 @@ total times is similar to the ratio of render times with MSVC taking
 </tr>
 </tbody>
 </table>
-<p><img src="./assets/plot_gcc_msvc_st.png"
-alt="GCC vs MSVC (Single Threaded)" /> <img
-src="./assets/plot_gcc_msvc_st_stacked.png"
-alt="GCC vs MSVC (Single Threaded, Stacked Plot)" /></p>
+<figure>
+<img src="./assets/plot_gcc_msvc_st.png"
+alt="GCC vs MSVC (Single Threaded)" />
+<figcaption aria-hidden="true">GCC vs MSVC (Single
+Threaded)</figcaption>
+</figure>
+<figure>
+<img src="./assets/plot_gcc_msvc_st_stacked.png"
+alt="GCC vs MSVC (Single Threaded, Stacked Plot)" />
+<figcaption aria-hidden="true">GCC vs MSVC (Single Threaded, Stacked
+Plot)</figcaption>
+</figure>
 <p>For multithreaded, I could do more cases. The performance difference
 is pretty similar in initialization with MSVC taking 58.12% of time of
 GCC while rendering with MSVC taking 187.58% of GCC. Except for a few
@@ -986,16 +994,31 @@ to the fact that OpenMP version is older in MSVC.</p>
 </tr>
 </tbody>
 </table>
-<p><img src="./assets/plot_gcc_msvc_mt.png"
-alt="GCC vs MSVC (Multi Threaded)" /> <img
-src="./assets/plot_gcc_msvc_mt_stacked.png"
-alt="GCC vs MSVC (Multi Threaded, Stacked Plot)" /></p>
+<figure>
+<img src="./assets/plot_gcc_msvc_mt.png"
+alt="GCC vs MSVC (Multi Threaded)" />
+<figcaption aria-hidden="true">GCC vs MSVC (Multi Threaded)</figcaption>
+</figure>
+<figure>
+<img src="./assets/plot_gcc_msvc_mt_stacked.png"
+alt="GCC vs MSVC (Multi Threaded, Stacked Plot)" />
+<figcaption aria-hidden="true">GCC vs MSVC (Multi Threaded, Stacked
+Plot)</figcaption>
+</figure>
 <p>Since Focusing Dragons break the scale of the graph, here is the plot
 without that case:</p>
-<p><img src="./assets/plot_gcc_msvc_mt_focusing.png"
-alt="GCC vs MSVC (Multi Threaded, No Focusing Dragons)" /> <img
-src="./assets/plot_gcc_msvc_mt_focusing_stacked.png"
-alt="GCC vs MSVC (Multi Threaded, No Focusing Dragons, Stacked Plot)" /></p>
+<figure>
+<img src="./assets/plot_gcc_msvc_mt_focusing.png"
+alt="GCC vs MSVC (Multi Threaded, No Focusing Dragons)" />
+<figcaption aria-hidden="true">GCC vs MSVC (Multi Threaded, No Focusing
+Dragons)</figcaption>
+</figure>
+<figure>
+<img src="./assets/plot_gcc_msvc_mt_focusing_stacked.png"
+alt="GCC vs MSVC (Multi Threaded, No Focusing Dragons, Stacked Plot)" />
+<figcaption aria-hidden="true">GCC vs MSVC (Multi Threaded, No Focusing
+Dragons, Stacked Plot)</figcaption>
+</figure>
 <h3 id="texture-benchmark">Texture Benchmark</h3>
 <p>And here is the big benchmark! MSVC took 72.2% of the time of GCC to
 initialize while taking 157.4% of the time of GCC to render scenes. As
@@ -1294,15 +1317,29 @@ took 150.7% of the time of GCC to start and finish the whole job.</p>
 </tr>
 </tbody>
 </table>
-<p><img src="./assets/plot.png" alt="GCC vs MSVC" /> <img
-src="./assets/plot_stacked.png" alt="GCC vs MSVC (Stacked Plot)" /></p>
+<figure>
+<img src="./assets/plot.png" alt="GCC vs MSVC" />
+<figcaption aria-hidden="true">GCC vs MSVC</figcaption>
+</figure>
+<figure>
+<img src="./assets/plot_stacked.png" alt="GCC vs MSVC (Stacked Plot)" />
+<figcaption aria-hidden="true">GCC vs MSVC (Stacked Plot)</figcaption>
+</figure>
 <p>To make the scale less broken, here is the plot without Focusing
 Dragons, Metal Glass Plates (Dist), Galactica Dynamic, Veach Ajar and
 Tap (Texture):</p>
-<p><img src="./assets/plot_smaller.png"
-alt="GCC vs MSVC (Some Cases Omitted)" /> <img
-src="./assets/plot_smaller_stacked.png"
-alt="GCC vs MSVC (Some Cases Omitted, Stacked Plot)" /></p>
+<figure>
+<img src="./assets/plot_smaller.png"
+alt="GCC vs MSVC (Some Cases Omitted)" />
+<figcaption aria-hidden="true">GCC vs MSVC (Some Cases
+Omitted)</figcaption>
+</figure>
+<figure>
+<img src="./assets/plot_smaller_stacked.png"
+alt="GCC vs MSVC (Some Cases Omitted, Stacked Plot)" />
+<figcaption aria-hidden="true">GCC vs MSVC (Some Cases Omitted, Stacked
+Plot)</figcaption>
+</figure>
 <h2 id="conclusion">Conclusion</h2>
 <p>As we get closer to the end of the semester, our outputs have been
 becoming better with each homework. Texture support is pretty much a
