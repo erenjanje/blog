@@ -266,7 +266,7 @@ tr:nth-child(even):hover {
     background-color: #aaa;
 }
 
-@media (width > 932px) {
+@media (width > 932px) and (orientation: landscape) {
     body {
         --page-pad: 36px;
         --page-width: calc(932px - 2*var(--page-pad));
