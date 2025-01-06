@@ -40,7 +40,7 @@ body {
     hyphens: auto;
 }
 
-#page > h1 > a {
+#page > marquee > h1 > a {
     text-decoration: none;
 }
 
