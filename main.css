@@ -40,8 +40,10 @@ body {
     hyphens: auto;
 }
 
-#page > marquee > h1 > a {
+#page > h1 > a {
     text-decoration: none;
+    text-align: center;
+    display: block;
 }
 
 #page {
