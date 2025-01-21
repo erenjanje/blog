@@ -995,6 +995,21 @@ calculated seconds per sample in the render time cells.</p>
 </tr>
 </tbody>
 </table>
+<p>Here is the graph for render time and sample count:</p>
+<figure>
+<img src="./results/plot_path_veach.png"
+alt="Veach Ajar, sample count by render time" />
+<figcaption aria-hidden="true">Veach Ajar, sample count by render
+time</figcaption>
+</figure>
+<p>And here is the graph for render time per sample and sample
+count:</p>
+<figure>
+<img src="./results/plot_path_veach_normalized.png"
+alt="Veach Ajar, sample count by render time per sample" />
+<figcaption aria-hidden="true">Veach Ajar, sample count by render time
+per sample</figcaption>
+</figure>
 <p>Similar to Veach Ajar, here are measurements for Sponza:</p>
 <table style="width:100%;">
 <colgroup>
@@ -1057,6 +1072,14 @@ split more.</p>
 </tr>
 </tbody>
 </table>
+<p>Here is graph for render time by split count:</p>
+<figure>
+<img src="./results/plot_path_splitting.png"
+alt="Split count by render time" />
+<figcaption aria-hidden="true">Split count by render time</figcaption>
+</figure>
+<p>As you can see, it looks pretty similar to the graph of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mfrac><mn>1</mn><mi>x</mi></mfrac><annotation encoding="application/x-tex">\frac{1}{x}</annotation></semantics></math>.</p>
 <p>Here are the render times of BRDF testcases:</p>
 <table>
 <thead>
@@ -1124,6 +1147,17 @@ split more.</p>
 </tr>
 </tbody>
 </table>
+<p>And the graphs:</p>
+<figure>
+<img src="./results/plot_brdf.png" alt="BRDF render time graph" />
+<figcaption aria-hidden="true">BRDF render time graph</figcaption>
+</figure>
+<figure>
+<img src="./results/plot_brdf_stacked.png"
+alt="Stacked BRDF render time graph" />
+<figcaption aria-hidden="true">Stacked BRDF render time
+graph</figcaption>
+</figure>
 <p>And here are the measurements for direct lighting and path tracing
 testcases. I also normalized the 400 sample cases to 100 cases by
 dividing the time by 4 in order to improve the scale of the graph.</p>
@@ -1242,18 +1276,12 @@ dividing the time by 4 in order to improve the scale of the graph.</p>
 <tr>
 <td>prism_next_importance</td>
 <td>0.0014494</td>
-<td>27.584</td>
-<td>27.584</td>
-</tr>
-<tr>
-<td>prism_next_importance</td>
-<td>0.011522</td>
 <td>27.572</td>
 <td>27.572</td>
 </tr>
 <tr>
 <td>prism_next_importance_russian</td>
-<td>0.011522</td>
+<td>0.0014494</td>
 <td>21.735</td>
 <td>21.735</td>
 </tr>
@@ -1295,6 +1323,16 @@ dividing the time by 4 in order to improve the scale of the graph.</p>
 </tr>
 </tbody>
 </table>
+<p>And of course, the graphs for these measurements:</p>
+<figure>
+<img src="./results/plot_path.png" alt="Render time graph" />
+<figcaption aria-hidden="true">Render time graph</figcaption>
+</figure>
+<figure>
+<img src="./results/plot_path_stacked.png"
+alt="Stacked render time graph" />
+<figcaption aria-hidden="true">Stacked render time graph</figcaption>
+</figure>
 <h2 id="conclusion">Conclusion</h2>
 <p>I am actually surprised that I am one of the only ones that tried
 Veach Ajar. It is, in my opinion, much easier to try since it does not
