@@ -21,13 +21,363 @@
             <hr />
             <!-- CENG795-Final: Ghost in the Trace; C++, Programlama, Teknoloji, Gönderi, Ödev, Işın İzleme -->
 <p><a href="#fn1" class="footnote-ref" id="fnref1"
-role="doc-noteref"><sup>1</sup></a></p>
+role="doc-noteref"><sup>1</sup></a> <a href="#fn2" class="footnote-ref"
+id="fnref2" role="doc-noteref"><sup>2</sup></a> <a href="#fn3"
+class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a></p>
+<ul>
+<li><a href="#theory">Theory</a></li>
+<li><a href="#implementation">Implementation</a>
+<ul>
+<li><a href="#sparse-voxel-octree">Sparse Voxel Octree</a>
+<ul>
+<li><a href="#types">Types</a></li>
+<li><a href="#input-augmentation">Input Augmentation</a></li>
+<li><a href="#svo-creation">SVO Creation</a></li>
+</ul></li>
+</ul></li>
+</ul>
+<p>Kon’nichiwa and ciao everybody, welcome to our blog post about the
+final project of the course Advanced Ray Tracing. It has been a very
+interesting, challenging, educating and entertaining semester with ray
+tracing. After countless hours, we have managed to create (mostly)
+working ray tracers with a great set of features. As we have finished
+the homeworks, we decided our final projects, each of us choosing a
+different augment. Alp and me decided to implement Sparse Voxel Octree,
+which is a nice acceleration structure that can be used to represent
+huge amounts of blocks while taking small amount of space, and also have
+a fast intersection routine.</p>
+<p>I (Erencan) did the SVO part while Alp did the Minecraft importer
+part. The project is based on my ray tracer, so its rendering has all
+the quirks and errors that my HW6 ray tracer has.</p>
+<h2 id="theory">Theory</h2>
+<p>Voxel Trees work in a way pretty similar to Bounding Volume
+Hierarchies. Actually, if every block is defined as 12 triangles, which
+is pretty much the normal representation of a cube, and the coordinates
+of the vertices of these triangles are given correctly (without
+precision errors), a BVH pretty much converges to a voxel tree. If each
+BVH node has eight children, this BVH tree is pretty much a Dense Voxel
+Octree. I am not sure whether surface area heuristic can break this or
+not, but median division (which is what both of us used) converges to a
+DVO.</p>
+<p>DVOs are pretty bad that they need more memory compared to a plain
+block array. They have a nice property of that they can easily be
+represented using heaps, since each internal node has exactly 8
+children. The memory usage can be calculated as a geometric series:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>M</mi><mo>=</mo><mn>1</mn><mo>+</mo><mn>8</mn><mo>+</mo><msup><mn>8</mn><mn>2</mn></msup><mo>+</mo><msup><mn>8</mn><mn>3</mn></msup><mo>+</mo><mi>.</mi><mi>.</mi><mi>.</mi><mo>+</mo><msup><mn>8</mn><mrow><msub><mo>log</mo><mn>8</mn></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>N</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow></msup><mo>=</mo><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>0</mn></mrow><mrow><mo>log</mo><mrow><mo stretchy="true" form="prefix">(</mo><mi>N</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow></munderover><msup><mn>8</mn><mi>i</mi></msup></mrow><annotation encoding="application/x-tex">
+M = 1 + 8 + 8^2 + 8^3 + ... + 8^{\log_8\left(N\right)} = \sum_{i=0}^{\log\left(N\right)} 8^i
+</annotation></semantics></math></p>
+<p>where
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math>
+is the number of blocks. For a geometric series with base
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>α</mi><annotation encoding="application/x-tex">\alpha</annotation></semantics></math>
+from
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>1</mn><annotation encoding="application/x-tex">1</annotation></semantics></math>
+(exponent of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0</mn><annotation encoding="application/x-tex">0</annotation></semantics></math>)
+to
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>,
+the summation can be calculated using this formula:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mfrac><mrow><msup><mi>α</mi><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msup><mo>−</mo><mn>1</mn></mrow><mrow><mi>α</mi><mo>−</mo><mn>1</mn></mrow></mfrac><annotation encoding="application/x-tex">
+\frac{\alpha^{n+1}- 1}{\alpha - 1}
+</annotation></semantics></math></p>
+<p>Here,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><msub><mo>log</mo><mn>8</mn></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>N</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">n = \log_8\left(N\right)</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>α</mi><mo>=</mo><mn>8</mn></mrow><annotation encoding="application/x-tex">\alpha = 8</annotation></semantics></math>
+for our case. When we put them into their places in the summation
+formula, we get this:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mfrac><mrow><msup><mn>8</mn><mrow><msub><mo>log</mo><mn>8</mn></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>N</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow></msup><mo>−</mo><mn>1</mn></mrow><mn>7</mn></mfrac><annotation encoding="application/x-tex">
+\frac{8^{\log_8\left(N\right)} - 1}{7}
+</annotation></semantics></math></p>
+<p>The
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>8</mn><annotation encoding="application/x-tex">8</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mo>log</mo><mn>8</mn></msub><annotation encoding="application/x-tex">\log_8</annotation></semantics></math>
+eliminates each other, resulting in</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mfrac><mrow><mn>8</mn><mi>N</mi><mo>−</mo><mn>1</mn></mrow><mn>7</mn></mfrac><annotation encoding="application/x-tex">
+\frac{8N - 1}{7}
+</annotation></semantics></math></p>
+<p>Since
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>8</mn><mi>N</mi></mrow><annotation encoding="application/x-tex">8N</annotation></semantics></math>
+dominates the upper term, we get
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>M</mi><mo>=</mo><mfrac><mn>8</mn><mn>7</mn></mfrac><mi>N</mi></mrow><annotation encoding="application/x-tex">M = \frac{8}{7}N</annotation></semantics></math>,
+the total memory consumption of a DVO for
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math>
+blocks. Even though the overhead is only
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mfrac><mn>1</mn><mn>7</mn></mfrac><mi>N</mi></mrow><annotation encoding="application/x-tex">\frac{1}{7}N</annotation></semantics></math>,
+since
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math>
+can be <em>very</em> large, this is a problem. For example, Minecraft
+worlds have 16x256x16 (or 16x320x16 in newer versions) chunks, which can
+be considered as <em>tiny</em> compared to a regular Minecraft world a
+player plays on, and such a chunk has 4096 blocks. Far render distance
+enables rendering of 16 chunks in each horizontal distance (since
+Minecraft chunks are not stacked on top of each other without
+modifications), which means 1024 chunks, which means more than 2
+millions of blocks! As you can see, it is inconvenient to store every
+block.</p>
+<p>Now think about a regular Minecraft world. Most of the world’s upper
+half is actually empty, since the sea level is <code>y=62</code>, so a
+non-mountainous region has pretty much three quarters of the chunk as
+empty. On top of that, most of the lower parts are actually huge blobs
+of stones, with ores and caves being occasional. This is a <em>huge</em>
+lack of entropy! Sparse Voxel Octrees exploit this kind regularity by
+<em>merging</em> the nodes of a DVO. Unlike DVOs, SVOs cannot be
+represented using heaps, they are more similar to BVH in this regard.
+However, since they exploit these regularities, they are much more
+compact, which improves efficiency by not only improving cache
+efficiency, but also making it possible to terminate a traversal before
+a full dive into the tree. In DVOs, every intersection check goes to the
+deepest level of the tree; however, in SVOs, a check can terminate if it
+comes across a bigger block group. So, let’s have a look at its
+implementation.</p>
+<h2 id="implementation">Implementation</h2>
+<h3 id="sparse-voxel-octree">Sparse Voxel Octree</h3>
+<h4 id="types">Types</h4>
+<p>The firt thing I did was deciding on the representation of the tree
+nodes. In principle, they are simple sum types of materials and internal
+nodes. However, I struggled a bit about how to represent them. A
+separate boolean would be a huge waste, since a boolean uses up 1 or 4
+bytes, not a single bit. I thought about using bitfields, but I scrapped
+this idea in favor of the same approach I used for BVH: using negative
+and positive integers. Unlike BVH, negative indices this time represent
+internal nodes while non-negative ones represent materials. This is
+actually pretty nice that air blocks are represented using material 0,
+which is considered as a material (i.e. a leaf node) instead of an
+internal node. I created a few helper functions to make handling the
+index easier.</p>
+<h4 id="input-augmentation">Input Augmentation</h4>
+<p>The next thing I did was defining the format of the input. The XML
+format we have been using until now did not have a way to define blocks.
+For this, I defined two new tags:</p>
+<ol type="1">
+<li>A <code>Chunk</code>: A chunk represents a single instance of SVO.
+It is defined under <code>Objects</code>. Like other objects, it has an
+<code>id</code>, which may be non-contiguous but as the other objects,
+but unlike meshes, <code>id</code>s are ignored. This should not cause
+any issues since terrains do not currently support instances. Supporting
+instancing could have been nice, but rendering bigger worlds was our
+priority, and we had a small timeframe after HW6 and before deadline. A
+<code>Chunk</code> also supports attribute <code>scale</code>.
+<code>scale</code> is defined as a power of 2, so <code>0</code> means
+<code>1</code>, <code>1</code> means <code>2</code> and <code>-1</code>
+means <code>0.5</code>. This scale is the size of this chunk. Blocks
+defined out of this size cause errors, but increasing this also
+decreases performance since this is pretty much the starting “height” of
+the tree. A <code>Block</code> with scale <code>n</code> defined under a
+<code>Chunk</code> with scale <code>m</code> has a
+<strong>maximal</strong> depth of <code>m-n</code>.</li>
+<li>A <code>Block</code> is defined under a <code>Chunk</code>. It
+represents a single block in this chunk. It is a short tag (ends with
+<code>/&gt;</code>) since a block does not have any child. It is defined
+by its attributes.
+<ol type="1">
+<li><code>x</code>, <code>y</code> and <code>z</code> define the
+position of the block. Note that these coordinates <em>must</em> be
+aligned with the size of the block. For instance, a block with
+<code>scale</code> <code>0</code> (i.e. a 1x1x1 block) cannot have
+<code>x</code> <code>0.5</code>, but a block with <code>scale</code>
+<code>-1</code> (i.e. a 0.5x0.5x0.5 block) can have such a
+coordinate.</li>
+<li><code>material</code> defines the material of the block. It is
+pretty much the same as the <code>Material</code> element inside meshes,
+spheres, triangles and instances in the homeworks, with the only
+difference that it is an attribute rather than an element. I is also
+1-based.</li>
+<li><code>scale</code> defines the size of the block as a power of 2. It
+is pretty much the same as the <code>scale</code> of a
+<code>Chunk</code>, only that it is for a block. As said in the
+coordinate article, <code>scale</code> and coordinates must result in an
+aligned block.</li>
+</ol></li>
+</ol>
+<p>Apart from this, there is an improvements to another part of the
+format. Namely, the materials now support textures, since defining
+textures separately for each block would be bad, and in most scenes in
+real life including a Minecraft scene, it is materials that utilize the
+textures. This would be an interesting discussion, since a texture can
+define both color (diffuse and specular) <em>and</em> geometry, so a
+texture may belong to either of them, philosophically speaking. We went
+with this since defining both textures and materials per block would be
+pretty wasteful, especially since <em>every</em> SVO node would need to
+allocate area for both of them.</p>
+<p>With this, the input was done. The next step was obvious: creating
+the SVO!</p>
+<h4 id="svo-creation">SVO Creation</h4>
+<p>After kilometers of walking inside the dormitories and the home, I
+realized that SVO creation was pretty much the same as BVH. After
+reading all the blocks in a <code>Chunk</code>,
+<code>Chunk::construct</code> method is called. This separation is nice
+since Alp’s importer also gives a block array, so the same constructor
+can be used to construct both imported Minecraft worlds and hand-defined
+chunks.</p>
+<p>I can actually just post the construction method, since it is pretty
+short, yet does most of the work.</p>
+<p>Actually, most of the function is just the same code repeated eight
+times.</p>
+<p>The main algorithm is as follows:</p>
+<ol type="1">
+<li>For a range of blocks, check whether it should be divided further or
+not.
+<ol type="1">
+<li>An empty range means there is no block belonging to this node, so we
+return empty node</li>
+<li>If there is only one block and its size matches the size of the node
+(i.e. their scales are equal), this is a leaf node with material defined
+as the material of that block.</li>
+<li>Otherwise, if any of the blocks in the range has size larger than
+the size of the current node, something is wrong. It may be caused by
+two reasons, both of which would cause infinite loop in construction if
+this check does not exist:
+<ol type="1">
+<li>There are overlapping blocks. This is actually the reason I added
+this check for. If a block’s size is equal to the size of the node while
+there are other blocks that belong to the node, this means that the
+bigger block overlaps with the other ones. This causes infinite loop
+since after this point, size gets only smaller than the size of this
+block, so no matter how deeper the function divides the blocks, at least
+one recursion will not terminate.</li>
+<li>There are <em>multiple</em> (or some <em>single</em>) out-of-range
+blocks. I did not anticipate for this problem, but after Alp’s tests, we
+found out that out-of-range blocks also make this predicate hold true.
+This is due to the fact that all out-of-range blocks are always grouped
+into the same “octant” no matter the depth, so at some point, the size
+of the node becomes smaller than the size of at least one of these
+blocks. A single out-of-range block actually does not cause infinite
+loop in some cases, since at some point, either it causes this error if
+it is on the same octant with another in-range block (since both of them
+will be put into the same octant as the size gets smaller) or it becomes
+the sole block of the octant, making the node’s material its own. This
+is actually a pretty significant error since it changes the position of
+this out-of-range block. However, most cases would actually be handled
+by the predicate, and this degenerate case is not a big problem, since a
+legal scene should not have it.</li>
+</ol></li>
+</ol></li>
+<li>If neither of these conditions hold true, this node is an internal
+node.</li>
+<li>Partite the range so that it has 8 (possibly empty) partitions each
+representing an octant. This is done by comparing the coordinates of the
+block with the coordinates of the center of <em>node</em>. This center
+of node has a pretty simple calculation: each octant is offset by a
+quarter of the size of the node. For instance, if the node has size 256
+with center
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">(</mo><mn>0</mn><mn>0</mn><mn>0</mn><mo stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(0 0 0)</annotation></semantics></math>,
+the center of the first octant (all coordinates are non-negative) is
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">(</mo><mn>64</mn><mn>64</mn><mn>64</mn><mo stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(64 64 64)</annotation></semantics></math>.</li>
+</ol>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="kw">auto</span> length <span class="op">=</span> end <span class="op">-</span> start<span class="op">;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> erroneous_scale <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>length <span class="op">==</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span>  <span class="co">// Empty</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    makeMaterial<span class="op">(</span><span class="dv">0</span><span class="op">);</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span><span class="op">;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>length <span class="op">==</span> <span class="dv">1</span> <span class="kw">and</span> scale <span class="op">==</span> chunk<span class="op">.</span>blocks<span class="op">[</span>start<span class="op">].</span>scale<span class="op">)</span> <span class="op">{</span>  <span class="co">// Node equals a whole block</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    makeMaterial<span class="op">(</span>chunk<span class="op">.</span>blocks<span class="op">[</span>start<span class="op">].</span>material<span class="op">);</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span><span class="op">;</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span><span class="bu">std::</span>any_of<span class="op">(</span>chunk<span class="op">.</span>blocks<span class="op">.</span>cbegin<span class="op">()</span> <span class="op">+</span> start<span class="op">,</span> chunk<span class="op">.</span>blocks<span class="op">.</span>cbegin<span class="op">()</span> <span class="op">+</span> end<span class="op">,</span> <span class="op">[&amp;](</span>Block <span class="at">const</span><span class="op">&amp;</span> block<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> <span class="op">(</span>block<span class="op">.</span>scale <span class="op">&gt;=</span> scale<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>                    erroneous_scale <span class="op">=</span> block<span class="op">.</span>scale<span class="op">;</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>                <span class="cf">return</span> block<span class="op">.</span>scale <span class="op">&gt;=</span> scale<span class="op">;</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>            <span class="op">}))</span> <span class="op">{</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">throw</span> <span class="bu">std::</span>runtime_error<span class="op">(</span><span class="st">&quot;Overlapping blocks detected&quot;</span><span class="op">);</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="co">// Node is an internal node</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="kw">auto</span> offsets <span class="op">=</span> SvoNode<span class="op">::</span>getOffsets<span class="op">(</span>offset<span class="op">,</span> scale<span class="op">);</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="kw">auto</span> octants <span class="op">=</span> chunk<span class="op">.</span>partition<span class="op">(</span>start<span class="op">,</span> end<span class="op">,</span> offset<span class="op">);</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="kw">auto</span> <span class="op">[</span>start_0<span class="op">,</span> end_0<span class="op">]</span> <span class="op">=</span> octants<span class="op">.</span>xyz<span class="op">;</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="kw">auto</span> <span class="op">[</span>start_1<span class="op">,</span> end_1<span class="op">]</span> <span class="op">=</span> octants<span class="op">.</span>xyZ<span class="op">;</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="kw">auto</span> <span class="op">[</span>start_2<span class="op">,</span> end_2<span class="op">]</span> <span class="op">=</span> octants<span class="op">.</span>xYz<span class="op">;</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="kw">auto</span> <span class="op">[</span>start_3<span class="op">,</span> end_3<span class="op">]</span> <span class="op">=</span> octants<span class="op">.</span>xYZ<span class="op">;</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="kw">auto</span> <span class="op">[</span>start_4<span class="op">,</span> end_4<span class="op">]</span> <span class="op">=</span> octants<span class="op">.</span>Xyz<span class="op">;</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="kw">auto</span> <span class="op">[</span>start_5<span class="op">,</span> end_5<span class="op">]</span> <span class="op">=</span> octants<span class="op">.</span>XyZ<span class="op">;</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="kw">auto</span> <span class="op">[</span>start_6<span class="op">,</span> end_6<span class="op">]</span> <span class="op">=</span> octants<span class="op">.</span>XYz<span class="op">;</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="kw">auto</span> <span class="op">[</span>start_7<span class="op">,</span> end_7<span class="op">]</span> <span class="op">=</span> octants<span class="op">.</span>XYZ<span class="op">;</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> children <span class="op">=</span> SvoChildren<span class="op">();</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>children<span class="op">[</span><span class="dv">0</span><span class="op">].</span>construct<span class="op">(</span>chunk<span class="op">,</span> offsets<span class="op">[</span><span class="dv">0</span><span class="op">],</span> start_0<span class="op">,</span> end_0<span class="op">,</span> scale <span class="op">-</span> <span class="dv">1</span><span class="op">);</span></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>children<span class="op">[</span><span class="dv">1</span><span class="op">].</span>construct<span class="op">(</span>chunk<span class="op">,</span> offsets<span class="op">[</span><span class="dv">1</span><span class="op">],</span> start_1<span class="op">,</span> end_1<span class="op">,</span> scale <span class="op">-</span> <span class="dv">1</span><span class="op">);</span></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>children<span class="op">[</span><span class="dv">2</span><span class="op">].</span>construct<span class="op">(</span>chunk<span class="op">,</span> offsets<span class="op">[</span><span class="dv">2</span><span class="op">],</span> start_2<span class="op">,</span> end_2<span class="op">,</span> scale <span class="op">-</span> <span class="dv">1</span><span class="op">);</span></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>children<span class="op">[</span><span class="dv">3</span><span class="op">].</span>construct<span class="op">(</span>chunk<span class="op">,</span> offsets<span class="op">[</span><span class="dv">3</span><span class="op">],</span> start_3<span class="op">,</span> end_3<span class="op">,</span> scale <span class="op">-</span> <span class="dv">1</span><span class="op">);</span></span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>children<span class="op">[</span><span class="dv">4</span><span class="op">].</span>construct<span class="op">(</span>chunk<span class="op">,</span> offsets<span class="op">[</span><span class="dv">4</span><span class="op">],</span> start_4<span class="op">,</span> end_4<span class="op">,</span> scale <span class="op">-</span> <span class="dv">1</span><span class="op">);</span></span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>children<span class="op">[</span><span class="dv">5</span><span class="op">].</span>construct<span class="op">(</span>chunk<span class="op">,</span> offsets<span class="op">[</span><span class="dv">5</span><span class="op">],</span> start_5<span class="op">,</span> end_5<span class="op">,</span> scale <span class="op">-</span> <span class="dv">1</span><span class="op">);</span></span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>children<span class="op">[</span><span class="dv">6</span><span class="op">].</span>construct<span class="op">(</span>chunk<span class="op">,</span> offsets<span class="op">[</span><span class="dv">6</span><span class="op">],</span> start_6<span class="op">,</span> end_6<span class="op">,</span> scale <span class="op">-</span> <span class="dv">1</span><span class="op">);</span></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>children<span class="op">[</span><span class="dv">7</span><span class="op">].</span>construct<span class="op">(</span>chunk<span class="op">,</span> offsets<span class="op">[</span><span class="dv">7</span><span class="op">],</span> start_7<span class="op">,</span> end_7<span class="op">,</span> scale <span class="op">-</span> <span class="dv">1</span><span class="op">);</span></span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> material <span class="op">=</span> <span class="dt">int32_t</span><span class="op">(-</span><span class="dv">1</span><span class="op">);</span></span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a><span class="dt">bool</span> is_filled <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> <span class="op">(</span><span class="at">const</span> <span class="kw">auto</span><span class="op">&amp;</span> node <span class="op">:</span> children<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span><span class="kw">not</span> node<span class="op">.</span>isMaterial<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>        is_filled <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>        <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>material <span class="op">==</span> <span class="op">-</span><span class="dv">1</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a>        material <span class="op">=</span> node<span class="op">.</span>getMaterial<span class="op">();</span></span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>material <span class="op">!=</span> node<span class="op">.</span>getMaterial<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>        is_filled <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a>        <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>is_filled<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a>    makeMaterial<span class="op">(</span>material<span class="op">);</span></span>
+<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a>    makeInternal<span class="op">(</span>chunk<span class="op">.</span>nodes<span class="op">.</span>size<span class="op">());</span></span>
+<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a>    chunk<span class="op">.</span>nodes<span class="op">.</span>emplace_back<span class="op">(</span><span class="bu">std::</span>move<span class="op">(</span>children<span class="op">));</span></span>
+<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <section id="footnotes" class="footnotes footnotes-end-of-document"
 role="doc-endnotes">
 <hr />
 <ol>
-<li id="fn1"><p>Final reference for the final homework! This is<a
+<li id="fn1"><p>Final reference, for the final homework! Since the
+ultimate goal of our project was rendering Minecraft worlds, this time I
+(Erencan) wanted to add a reference about Minecraft. The title of the
+post is a reference to one of the first live “sighting”s of Herobrine in
+Minecraft. Herobrine is a mythical being (so not in the actual game, or
+is it?) that exists inside Minecraft worlds. It is supposed to be
+something like a creepy stalker, watching the player from the fog,
+manipulating the parts of the world the player is currently not in (such
+as long 2x2 tunnels or removing leaves from trees) and disappearing
+whenever the player notices him. You can read a much more detailed
+history <a href="https://minecraft.wiki/w/Herobrine#History">here</a>.
+The reference is from the part of Patmuss’ stream, where Copeland (the
+first person who “saw” him in a live stream) posted a <a
+href="http://web.archive.org/web/20130710001351/http://ghostinthestream.net/him.html">link</a>
+(unfortunately, the original is lost, but here is the archived one). The
+link’s name is “ghostinthestream.net”, which is probably another
+reference to a classic anime <a
+href="https://anilist.co/anime/43/GHOST-IN-THE-SHELL-Koukaku-Kidoutai/">Ghost
+in the Shell</a>. The link has an animated GIF of Minecraft Steve’s
+face, but the eyes are replaced with frantically rolling realistic ones,
+creating a pretty creepy look (I was actually scared from that GIF while
+reading the wiki page when I was a child). It also has a text mixed with
+question marks and non-Latin symbols. When you extract the Latin
+symbols, you get a modified version of another creepypasta:<a
 href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><blockquote>
+<p>It has been reported that some victims of torture, during the act,
+would retreat into a fantasy world from which they could not WAKE UP. In
+this catatonic state, the victim lived in a world just like their normal
+one, except they weren’t being tortured. The only way that they realized
+they needed to WAKE UP was a note they found in their fantasy world. It
+would tell them about their condition, and tell them to WAKE UP. Even
+then, it would often take months until they were ready to discard their
+fantasy world and PLEASE WAKE UP.</p>
+</blockquote>
+<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></li>
+<li id="fn3"><p>This explanation actually became much longer than I
+anticipated, so let’s finish it. If you want to learn more, the wiki
+page is a very good source.<a href="#fnref3" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>
 
