@@ -32,9 +32,21 @@ class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a></p>
 <ul>
 <li><a href="#types">Types</a></li>
 <li><a href="#input-augmentation">Input Augmentation</a></li>
-<li><a href="#svo-creation">SVO Creation</a></li>
+<li><a href="#sparse-voxel-octree-creation">Sparse Voxel Octree
+Creation</a></li>
+<li><a href="#sparse-voxel-octree-traversal">Sparse Voxel Octree
+Traversal</a></li>
+<li><a href="#texture-support">Texture Support</a></li>
+</ul></li>
+<li><a href="#minecraft-world">Minecraft World</a>
+<ul>
+<li><a href="#world-format">World Format</a></li>
+<li><a href="#materials--textures">Materials &amp; Textures</a></li>
 </ul></li>
 </ul></li>
+<li><a href="#results">Results</a></li>
+<li><a href="#performance">Performance</a></li>
+<li><a href="#conclusion">Conclusion</a></li>
 </ul>
 <p>Kon’nichiwa and ciao everybody, welcome to our blog post about the
 final project of the course Advanced Ray Tracing. It has been a very
@@ -203,7 +215,7 @@ pretty wasteful, especially since <em>every</em> SVO node would need to
 allocate area for both of them.</p>
 <p>With this, the input was done. The next step was obvious: creating
 the SVO!</p>
-<h4 id="svo-creation">SVO Creation</h4>
+<h4 id="sparse-voxel-octree-creation">Sparse Voxel Octree Creation</h4>
 <p>After kilometers of walking inside the dormitories and the home, I
 realized that SVO creation was pretty much the same as BVH. After
 reading all the blocks in a <code>Chunk</code>,
@@ -260,12 +272,34 @@ node.</li>
 representing an octant. This is done by comparing the coordinates of the
 block with the coordinates of the center of <em>node</em>. This center
 of node has a pretty simple calculation: each octant is offset by a
-quarter of the size of the node. For instance, if the node has size 256
+quarter of the size of the node. For instance, if the node has size
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>256</mn><annotation encoding="application/x-tex">256</annotation></semantics></math>
 with center
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">(</mo><mn>0</mn><mn>0</mn><mn>0</mn><mo stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(0 0 0)</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">(</mo><mn>0</mn><mo>,</mo><mn>0</mn><mo>,</mo><mn>0</mn><mo stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(0,0,0)</annotation></semantics></math>,
 the center of the first octant (all coordinates are non-negative) is
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">(</mo><mn>64</mn><mn>64</mn><mn>64</mn><mo stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(64 64 64)</annotation></semantics></math>.</li>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">(</mo><mn>64</mn><mo>,</mo><mn>64</mn><mo>,</mo><mn>64</mn><mo stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(64,64,64)</annotation></semantics></math>.</li>
+<li>Recursively construct each child with their corresponding ranges
+while decreasing the size.</li>
+<li>If all children have the same material, then collapse them into the
+same node. Otherwise, add these children to the array.</li>
 </ol>
+<p>The collapse part was actually pretty interesting, since I stumbled
+upon almost the same problem in my compilers course! Specifically,
+constant folding. Say we have an expression <code>3 + 5</code>, which is
+parsed into a node representing addition operator, its left child being
+a constant <code>3</code> and the right child being a constant
+<code>5</code>. In constant folding pass in a compiler, this addition
+node must check whether all of its children are compile time constants,
+do the operation directly and change itself to a compile time constant
+with the result obtained from this operation. However, unlike this,
+implementing it was pretty harder since the nodes were polymorphic
+objects, so what I needed was pretty much changing the type of
+<code>this</code>! I solved the issue by delegating this change to the
+parent node, which made the code unnecessarily more complex. The
+<code>SvoNode</code>s are pretty much ad-hoc sum types, so this approach
+can easily work with sum types but not polymorphic objects. A nice
+lesson to have in the great adventure of programming!</p>
+<p>When I converted this to code, the result was this:</p>
 <div class="sourceCode" id="cb1"><pre
 class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="kw">auto</span> length <span class="op">=</span> end <span class="op">-</span> start<span class="op">;</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> erroneous_scale <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
@@ -334,6 +368,417 @@ class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#c
 <span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a>    makeInternal<span class="op">(</span>chunk<span class="op">.</span>nodes<span class="op">.</span>size<span class="op">());</span></span>
 <span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a>    chunk<span class="op">.</span>nodes<span class="op">.</span>emplace_back<span class="op">(</span><span class="bu">std::</span>move<span class="op">(</span>children<span class="op">));</span></span>
 <span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><code>makeMaterial</code> and <code>makeInternal</code> changes the
+object itself, which I explained in the <a href="#types">types</a>
+section. The layout of octants is a bit interesting. The field names are
+all <code>xyz</code>s but the capitalization denotes the sign. If that
+coordinate is negative, it is lowercase, otherwise uppercase. So
+<code>xYz</code> denotes the octant where <code>x</code> and
+<code>z</code> are negative and <code>y</code> is non-negative. I sorted
+them so that if lowercase ones are converted to <code>0</code>s and
+uppercase ones are converted to <code>1</code>s, the order reads like
+binary counting. <code>SvoChildren</code> is a simple
+<code>using</code>, it is just an <code>std::array</code> of 8
+<code>SvoNode</code>s.</p>
+<p>I actually struggled a bit while trying this function. In previous
+iterations, I pushed/emplaced the nodes directly to the nodes array and
+called the <code>construct</code> method on them. Did you see the
+problem again? This would invalidate all the nodes if the array ever
+reallocates, including the parents! Yikes (again). Almost one third of
+my time was spent on this single issue. The funny thing is that a
+similar issue would have happened with BVH nodes, but instead of using
+references (including <code>this</code>), I used indices. It seems like
+past me was definitely smarter than now me.</p>
+<p>So, the construction is finished!</p>
+<h4 id="sparse-voxel-octree-traversal">Sparse Voxel Octree
+Traversal</h4>
+<p>If SVO creation made me use my brain by an amount of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>x</mi><annotation encoding="application/x-tex">x</annotation></semantics></math>,
+I think traversal made me use it around
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mfrac><mi>x</mi><mn>5</mn></mfrac><annotation encoding="application/x-tex">\frac{x}{5}</annotation></semantics></math>.
+It was similar to BVH traversal, but it was even easier, probably since
+intersecting a material node directly means intersection, whereas in BVH
+I would need to call the callback (<a
+href="erencanc.pages.dev/posts/2024/11/ceng795-hw2#bounding-volume-hierarchy">see
+the relevant part of HW2 post</a>). Another change I did was adding
+<code>t</code> support to <code>aabbIntersection</code>. In BVH,
+<code>t</code> is not needed since the nodes are only used for
+true/false checks; however, in SVO it is used since the intersection
+itself is done with the bounding box itself. Fortunately, the
+<code>aabbIntersect</code> calculates <code>t</code>, it just ignores it
+after return. I just added a new optional <code>float*</code> parameter,
+and put the found <code>t</code> if it is not <code>nullptr</code>. The
+intersection algorithm is even shorter than creation:</p>
+<ol type="1">
+<li>If the block is empty/air, skip it (there cannot be intersection in
+this case).</li>
+<li>If there is not intersection, return <code>false</code>.</li>
+<li>If there is intersection, there are two possibilities:
+<ol type="1">
+<li>If it is a leaf node, save the material stored in the node since the
+intersection means an intersection with the object (block) itself and
+return <code>true</code>.</li>
+<li>It it is an internal node, recursively try every child and return
+<code>true</code> if <em>any</em> of these children has
+intersection.</li>
+</ol></li>
+</ol>
+<p>The code is longer, but mostly due to repeated recursive calls.</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>node<span class="op">.</span>isMaterial<span class="op">()</span> <span class="kw">and</span> node<span class="op">.</span>getMaterial<span class="op">()</span> <span class="op">==</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>let bb <span class="op">=</span> BoundingBox<span class="op">::</span>getBoundingBoxOfSvoNode<span class="op">(</span>offset<span class="op">,</span> scale<span class="op">);</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>var t_candidate <span class="op">=</span> <span class="fl">0.0</span><span class="bu">f</span><span class="op">;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>aabbIntersection<span class="op">(*</span><span class="kw">this</span><span class="op">,</span> bb<span class="op">,</span> <span class="op">&amp;</span>t_candidate<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>node<span class="op">.</span>isMaterial<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>t_candidate <span class="op">&lt;</span> t_out<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>            t_out <span class="op">=</span> t_candidate<span class="op">;</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>            material <span class="op">=</span> node<span class="op">.</span>getMaterial<span class="op">()</span> <span class="op">-</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="co">/* if(node.isInternal()) */</span> <span class="op">{</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        let<span class="op">&amp;</span> children <span class="op">=</span> chunk<span class="op">.</span>nodes<span class="op">[</span>node<span class="op">.</span>getInternal<span class="op">()];</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        let offsets <span class="op">=</span> SvoNode<span class="op">::</span>getOffsets<span class="op">(</span>offset<span class="op">,</span> scale<span class="op">);</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        let child_0 <span class="op">=</span> intersect<span class="op">(</span>chunk<span class="op">,</span> children<span class="op">[</span><span class="dv">0</span><span class="op">],</span> offsets<span class="op">[</span><span class="dv">0</span><span class="op">],</span> scale <span class="op">-</span> <span class="dv">1</span><span class="op">,</span> t_out<span class="op">,</span> uv<span class="op">,</span> material<span class="op">,</span> n<span class="op">);</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>        let child_1 <span class="op">=</span> intersect<span class="op">(</span>chunk<span class="op">,</span> children<span class="op">[</span><span class="dv">1</span><span class="op">],</span> offsets<span class="op">[</span><span class="dv">1</span><span class="op">],</span> scale <span class="op">-</span> <span class="dv">1</span><span class="op">,</span> t_out<span class="op">,</span> uv<span class="op">,</span> material<span class="op">,</span> n<span class="op">);</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>        let child_2 <span class="op">=</span> intersect<span class="op">(</span>chunk<span class="op">,</span> children<span class="op">[</span><span class="dv">2</span><span class="op">],</span> offsets<span class="op">[</span><span class="dv">2</span><span class="op">],</span> scale <span class="op">-</span> <span class="dv">1</span><span class="op">,</span> t_out<span class="op">,</span> uv<span class="op">,</span> material<span class="op">,</span> n<span class="op">);</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>        let child_3 <span class="op">=</span> intersect<span class="op">(</span>chunk<span class="op">,</span> children<span class="op">[</span><span class="dv">3</span><span class="op">],</span> offsets<span class="op">[</span><span class="dv">3</span><span class="op">],</span> scale <span class="op">-</span> <span class="dv">1</span><span class="op">,</span> t_out<span class="op">,</span> uv<span class="op">,</span> material<span class="op">,</span> n<span class="op">);</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>        let child_4 <span class="op">=</span> intersect<span class="op">(</span>chunk<span class="op">,</span> children<span class="op">[</span><span class="dv">4</span><span class="op">],</span> offsets<span class="op">[</span><span class="dv">4</span><span class="op">],</span> scale <span class="op">-</span> <span class="dv">1</span><span class="op">,</span> t_out<span class="op">,</span> uv<span class="op">,</span> material<span class="op">,</span> n<span class="op">);</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>        let child_5 <span class="op">=</span> intersect<span class="op">(</span>chunk<span class="op">,</span> children<span class="op">[</span><span class="dv">5</span><span class="op">],</span> offsets<span class="op">[</span><span class="dv">5</span><span class="op">],</span> scale <span class="op">-</span> <span class="dv">1</span><span class="op">,</span> t_out<span class="op">,</span> uv<span class="op">,</span> material<span class="op">,</span> n<span class="op">);</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>        let child_6 <span class="op">=</span> intersect<span class="op">(</span>chunk<span class="op">,</span> children<span class="op">[</span><span class="dv">6</span><span class="op">],</span> offsets<span class="op">[</span><span class="dv">6</span><span class="op">],</span> scale <span class="op">-</span> <span class="dv">1</span><span class="op">,</span> t_out<span class="op">,</span> uv<span class="op">,</span> material<span class="op">,</span> n<span class="op">);</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>        let child_7 <span class="op">=</span> intersect<span class="op">(</span>chunk<span class="op">,</span> children<span class="op">[</span><span class="dv">7</span><span class="op">],</span> offsets<span class="op">[</span><span class="dv">7</span><span class="op">],</span> scale <span class="op">-</span> <span class="dv">1</span><span class="op">,</span> t_out<span class="op">,</span> uv<span class="op">,</span> material<span class="op">,</span> n<span class="op">);</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> child_0 <span class="kw">or</span> child_1 <span class="kw">or</span> child_2 <span class="kw">or</span> child_3 <span class="kw">or</span> child_4 <span class="kw">or</span> child_5 <span class="kw">or</span> child_6 <span class="kw">or</span> child_7<span class="op">;</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a><span class="cf">return</span> <span class="kw">false</span><span class="op">;</span></span></code></pre></div>
+<p>So, let’s test it! I added this small block to the scene:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode xml"><code class="sourceCode xml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>&lt;<span class="kw">Chunk</span><span class="ot"> id=</span><span class="st">&quot;1&quot;</span>&gt;</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    &lt;<span class="kw">Block</span><span class="ot"> x=</span><span class="st">&quot;0&quot;</span><span class="ot"> y=</span><span class="st">&quot;-1&quot;</span><span class="ot"> z=</span><span class="st">&quot;0&quot;</span><span class="ot"> material=</span><span class="st">&quot;1&quot;</span> /&gt;</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>&lt;/<span class="kw">Chunk</span>&gt;</span></code></pre></div>
+<p>which results in this from a nice angle:</p>
+<figure>
+<img src="./images/simple_block_no_normal.png"
+alt="Simple block test" />
+<figcaption aria-hidden="true">Simple block test</figcaption>
+</figure>
+<p>Success? Success!</p>
+<figure>
+<img src="./images/But_It&#39;s_Honest_Work.jpg" alt="Yep, a meme" />
+<figcaption aria-hidden="true">Yep, a meme</figcaption>
+</figure>
+<p>Of course, the project was not exactly done. Even though simple
+materials were supported, the UV coordinates were not. This was a
+serious problem since Minecraft blocks are not defined as colors, but
+textures. Furthermore, there is some noise in sides of the cube as you
+can see, the reason is that the normal is always returned as
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">(</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo>,</mo><mn>0</mn><mo stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(0,1,0)</annotation></semantics></math>!
+I implemented the normal and UV coordinate support at the same time,
+since they used pretty much the solution of the same problem: face
+detection.</p>
+<h4 id="texture-support">Texture Support</h4>
+<p>The first thing to add in order to support textures was UV support,
+since textures cannot be used without texture coordinates. In order to
+do this, I actually did a small hack. Since no matter the transform of
+the chunk, the hit points would be local, so the normals would
+<em>always</em> be parallel to the base axes. The
+<code>aabbIntersect</code> does not find the face, so I needed to find
+it. After some thinking, I realized that I could just check the sides of
+the bounding box with the local hit point. It would be pretty enough to
+find the face. First, I wrote this function:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="at">static</span> glm<span class="op">::</span>vec3 getBlockNormal<span class="op">(</span>glm<span class="op">::</span>vec3 hit_point<span class="op">,</span> BoundingBox aabb<span class="op">,</span> glm<span class="op">::</span>vec2<span class="op">&amp;</span> uv<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    var i <span class="op">=</span> glm<span class="op">::</span>vec2<span class="op">();</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>equalf<span class="op">(</span>hit_point<span class="op">.</span>x<span class="op">,</span> aabb<span class="op">.</span>start<span class="op">.</span>x<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>        uv <span class="op">=</span> modf<span class="op">(</span>glm<span class="op">::</span>vec2<span class="op">(</span>hit_point<span class="op">.</span>z<span class="op">,</span> <span class="op">-</span>hit_point<span class="op">.</span>y<span class="op">));</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="op">{-</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">};</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>equalf<span class="op">(</span>hit_point<span class="op">.</span>y<span class="op">,</span> aabb<span class="op">.</span>start<span class="op">.</span>y<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        uv <span class="op">=</span> modf<span class="op">(</span>glm<span class="op">::</span>vec2<span class="op">(</span>hit_point<span class="op">.</span>x<span class="op">,</span> <span class="op">-</span>hit_point<span class="op">.</span>z<span class="op">));</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="op">{</span><span class="dv">0</span><span class="op">,</span> <span class="op">-</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">};</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>equalf<span class="op">(</span>hit_point<span class="op">.</span>z<span class="op">,</span> aabb<span class="op">.</span>start<span class="op">.</span>z<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>        uv <span class="op">=</span> modf<span class="op">(</span>glm<span class="op">::</span>vec2<span class="op">(-</span>hit_point<span class="op">.</span>x<span class="op">,</span> <span class="op">-</span>hit_point<span class="op">.</span>y<span class="op">));</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="op">{</span><span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="op">-</span><span class="dv">1</span><span class="op">};</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>equalf<span class="op">(</span>hit_point<span class="op">.</span>x<span class="op">,</span> aabb<span class="op">.</span>end<span class="op">.</span>x<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>        uv <span class="op">=</span> modf<span class="op">(</span>glm<span class="op">::</span>vec2<span class="op">(-</span>hit_point<span class="op">.</span>z<span class="op">,</span> <span class="op">-</span>hit_point<span class="op">.</span>y<span class="op">));</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="op">{</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">};</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>equalf<span class="op">(</span>hit_point<span class="op">.</span>y<span class="op">,</span> aabb<span class="op">.</span>end<span class="op">.</span>y<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>        uv <span class="op">=</span> modf<span class="op">(</span>glm<span class="op">::</span>vec2<span class="op">(</span>hit_point<span class="op">.</span>x<span class="op">,</span> hit_point<span class="op">.</span>z<span class="op">));</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="op">{</span><span class="dv">0</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">};</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>equalf<span class="op">(</span>hit_point<span class="op">.</span>z<span class="op">,</span> aabb<span class="op">.</span>end<span class="op">.</span>z<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>        uv <span class="op">=</span> modf<span class="op">(</span>glm<span class="op">::</span>vec2<span class="op">(</span>hit_point<span class="op">.</span>x<span class="op">,</span> <span class="op">-</span>hit_point<span class="op">.</span>y<span class="op">));</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="op">{</span><span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">1</span><span class="op">};</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="op">{</span><span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">1</span><span class="op">};</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>where <code>equalf</code> is just float equation but with an epsilon,
+and <code>modf</code> is <code>glm::modf</code> but done twice to remove
+the sign. <code>std::</code> and <code>glm::modf</code> both return
+negative numbers if the input is negative, which is not wanted, so I
+applied the <code>modf</code>, added <code>1.0f</code> and took
+<code>modf</code> again. This is pretty much the <code>MODULUS</code>
+macro I used in Perlin textures (defined as
+<code>#define MODULUS(a, b) (((a % b) + b) % b)</code>), but for
+floats.</p>
+<p>The signs in the UV were determined by hand. For sides, I tried to do
+it so that when looked directly, the top left is
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">(</mo><mn>0</mn><mo>,</mo><mn>0</mn><mo stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(0,0)</annotation></semantics></math>,
+the U component increases to the right and V component increases to the
+down, which is pretty much the same as how an image is read. For top and
+bottom, I was not sure, so it was pretty much random.</p>
+<p>We can render the scene using only UV coordinates to see the
+result:</p>
+<figure>
+<img src="./images/simple_block_uv.png" alt="Simple block with UV" />
+<figcaption aria-hidden="true">Simple block with UV</figcaption>
+</figure>
+<p>We can also render with shading to see the effect of the normal:</p>
+<figure>
+<img src="./images/simple_block_shaded.png"
+alt="Simple block with shading" />
+<figcaption aria-hidden="true">Simple block with shading</figcaption>
+</figure>
+<p>The last thing I did was adding texture support to materials. After
+struggling with the pointers a bit due to the architecture of the
+program, I managed to do it by using <code>std::optional</code>, which
+is a specific sum type implementation in C++ STL. After this, I rendered
+using bricks:</p>
+<figure>
+<img src="./images/simple_block_texture.png"
+alt="Simple block with texture" />
+<figcaption aria-hidden="true">Simple block with texture</figcaption>
+</figure>
+<p>Phew, I really thought that I would stumble upon weird issues like
+the one I came accross in construction and the time would not be enough
+to finish the project. However, it was finished!</p>
+<p>I also tried with smaller and bigger blocks. It should not be an
+issue, but I tried anyways, and it was not problematic as I
+expected.</p>
+<figure>
+<img src="./images/simple_block_small.png"
+alt="Smaller block with texture" />
+<figcaption aria-hidden="true">Smaller block with texture</figcaption>
+</figure>
+<figure>
+<img src="./images/simple_block_big.png"
+alt="Bigger block with texture" />
+<figcaption aria-hidden="true">Bigger block with texture</figcaption>
+</figure>
+<p>The result was pretty nice, but I assume that one of the biggest
+reasons is that the texture was seamless. Let’s render the UVs.</p>
+<figure>
+<img src="./images/simple_block_small_uv.png"
+alt="Smaller block with UV" />
+<figcaption aria-hidden="true">Smaller block with UV</figcaption>
+</figure>
+<figure>
+<img src="./images/simple_block_big_uv.png"
+alt="Bigger block with UV" />
+<figcaption aria-hidden="true">Bigger block with UV</figcaption>
+</figure>
+<p>Big block looks pretty good, it really looks like it consists of
+smaller full blocks. However, the smaller block looks a bit off. The
+problem is that we have not been able to test it throughly.</p>
+<p>So, my work was done. Let’s hear Alp’s work in his own words. See you
+in results and conclusion (but not performance)!</p>
+<h3 id="minecraft-world">Minecraft World</h3>
+<p>We were in dire need of some things to render other than single
+blocks. We decided to use Minecraft worlds. Minecraft is a very popular
+voxel-based game with procedural world generation. Minecraft’s world
+format is well-documented and easy to parse with the help of some open
+source libraries.</p>
+<h4 id="world-format">World Format</h4>
+<p>The world is composed of <code>.mca</code> files on disk. In the
+<code>.xml</code> format <code>Chunk</code> tag, a list of region file
+paths may be provided alongside the usual <code>Block</code>’s:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode xml"><code class="sourceCode xml"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>&lt;<span class="kw">Objects</span>&gt;</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    &lt;<span class="kw">Chunk</span>&gt;</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>        &lt;<span class="kw">Region</span>&gt;big/r.-1.-1.mca&lt;/<span class="kw">Region</span>&gt;</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>        &lt;<span class="kw">Region</span>&gt;big/r.-1.1.mca&lt;/<span class="kw">Region</span>&gt;</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>        &lt;<span class="kw">Region</span>&gt;big/r.-1.3.mca&lt;/<span class="kw">Region</span>&gt;</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    &lt;/<span class="kw">Chunk</span>&gt;</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>&lt;/<span class="kw">Objects</span>&gt;</span></code></pre></div>
+<ul>
+<li><code>.mca</code> files store one region.</li>
+<li>Regions store an area of <code>32x32</code> chunks.</li>
+<li>Chunks store <code>256</code> chunk sections, some of which may be
+unused/null. These are stacked vertically.</li>
+<li>Chunk sections store <code>16x16x16</code> voxels.</li>
+</ul>
+<p>Simple formulas are used to get a voxel’s position based on the
+coordinates of its region, chunk and chunks section. The code below
+loads these files to memory (simplified to highlight important
+parts):</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="dt">FILE</span><span class="op">*</span> fp <span class="op">=</span> fopen<span class="op">(</span>region_file_path<span class="op">.</span>string<span class="op">().</span>c_str<span class="op">(),</span> <span class="st">&quot;rb&quot;</span><span class="op">);</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>enkiRegionFile region_file <span class="op">=</span> enkiRegionFileLoad<span class="op">(</span>fp<span class="op">);</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> <span class="op">(</span><span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> <span class="dv">1024</span><span class="op">;</span> i<span class="op">++)</span> <span class="op">{</span> <span class="co">// we iterate each chunk in the region</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    enkiChunkBlockData chunk <span class="op">=</span> enkiNBTReadChunk<span class="op">(&amp;</span>stream<span class="op">);</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="dt">int</span> j <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> j <span class="op">&lt;</span> <span class="dv">256</span><span class="op">;</span> j<span class="op">++)</span> <span class="op">{</span> <span class="co">// for each chunk section</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>chunk<span class="op">.</span>sections<span class="op">[</span>j<span class="op">]</span> <span class="op">==</span> <span class="kw">nullptr</span><span class="op">)</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span><span class="op">;</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>        <span class="at">const</span> <span class="kw">auto</span> palette <span class="op">=</span> chunk<span class="op">.</span>palette<span class="op">[</span>j<span class="op">];</span> <span class="co">// for getting block type</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> <span class="op">(</span><span class="dt">int</span> x <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> x <span class="op">&lt;</span> <span class="dv">16</span><span class="op">;</span> x<span class="op">++)</span> <span class="op">{</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> <span class="op">(</span><span class="dt">int</span> y <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> y <span class="op">&lt;</span> <span class="dv">16</span><span class="op">;</span> y<span class="op">++)</span> <span class="op">{</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>                <span class="cf">for</span> <span class="op">(</span><span class="dt">int</span> z <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> z <span class="op">&lt;</span> <span class="dv">16</span><span class="op">;</span> z<span class="op">++)</span> <span class="op">{</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>                    let block <span class="op">=</span> Block<span class="op">(</span>block_pos<span class="op">,</span> <span class="dv">0</span><span class="op">,</span> scene_mat_index<span class="op">);</span> <span class="co">// convert to internal block format</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>                    terrain<span class="op">.</span>blocks<span class="op">.</span>emplace_back<span class="op">(</span>block<span class="op">);</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    enkiNBTFreeAllocations<span class="op">(&amp;</span>stream<span class="op">);</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>enkiRegionFileFreeAllocations<span class="op">(&amp;</span>region_file<span class="op">);</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>fclose<span class="op">(</span>fp<span class="op">);</span></span></code></pre></div>
+<p>Each chunk also has a palette. This basically defines which voxels
+are mapped to which materials. This will later be useful in the
+materials section.</p>
+<h4 id="materials-textures">Materials &amp; Textures</h4>
+<p>To get the voxels to look as they do in-game, we needed to extract
+the original texture data from the game. This is stored as JSON metadata
+and PNG images. Since these are very game specific, I will choose to not
+go into much detail. Briefly, the metadata is keyed by tags like
+<code>minecraft:stone</code>, <code>minecraft:grass_block</code>. These
+tags can be extracted from the aforementioned chunk palette. For each
+metadata key, a standard diffuse material is generated. The JSON file
+corresponding to the tag is used to read the correct <code>.png</code>
+files. Because <strong>different sides can have different
+textures</strong>, multiple images may be assigned to the same
+material.</p>
+<p>Since the voxels don’t have a true UV definition, a technique similar
+to triplanar rendering is used.</p>
+<p>Using the voxel normal from the hit point data, we can determine
+which side of the voxel is hit:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>TextureDirection dir<span class="op">;</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>images<span class="op">.</span>contains<span class="op">(</span>TextureDirection<span class="op">::</span>All<span class="op">))</span> <span class="op">{</span> <span class="co">// exception for voxels that have all sides the same</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    dir <span class="op">=</span> TextureDirection<span class="op">::</span>All<span class="op">;</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>normal<span class="op">.</span>y <span class="op">&lt;</span> <span class="fl">0.0</span><span class="bu">f</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    dir <span class="op">=</span> TextureDirection<span class="op">::</span>Bottom<span class="op">;</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>normal<span class="op">.</span>y <span class="op">&gt;</span> <span class="fl">0.0</span><span class="bu">f</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    dir <span class="op">=</span> TextureDirection<span class="op">::</span>Top<span class="op">;</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    dir <span class="op">=</span> TextureDirection<span class="op">::</span>Side<span class="op">;</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="kw">auto</span> image <span class="op">=</span> images<span class="op">.</span>at<span class="op">(</span>dir<span class="op">).</span>get<span class="op">();</span> <span class="co">// determine which image to sample</span></span></code></pre></div>
+<p>The obtained image is then sampled like usual.</p>
+<h2 id="results">Results</h2>
+<p>Rendering a Minecraft world looks very beautiful. However, even
+though we rendered worlds from recent versions, the results actually
+looked pretty old-fashioned, something out of Infdev or Alpha era.</p>
+<figure>
+<img src="./images/scenery.jpg" alt="Scenery" />
+<figcaption aria-hidden="true">Scenery</figcaption>
+</figure>
+<p>One of the nice things about our architecture is that we still have
+mesh support, so we tried to mix them to get this monstrosity:</p>
+<figure>
+<img src="./images/scenery_dragon.jpg" alt="Scenery with dragon" />
+<figcaption aria-hidden="true">Scenery with dragon</figcaption>
+</figure>
+<p>This dragon looks a bit too bright, so here is the same scene with a
+better light/material combination:</p>
+<figure>
+<img src="./images/scenery_shaded_dragon.jpg"
+alt="Scenery with better dragon" />
+<figcaption aria-hidden="true">Scenery with better dragon</figcaption>
+</figure>
+<p>And lastly, and probably the most gorgeous one, a closeup image of
+the dragon:</p>
+<figure>
+<img src="./images/closeup.jpg" alt="Closeup dragon" />
+<figcaption aria-hidden="true">Closeup dragon</figcaption>
+</figure>
+<p>It is unfortunate that we have not been able to implement water
+correctly. One of the main reasons is that my (Erencan’s) ray tracer did
+not anticipated coming to a dielectric material from another (or the
+same) one, so water blocks would refract rays again and again. Thus, we
+instead used full blue blocks, which looked so nostalgic.</p>
+<h2 id="performance">Performance</h2>
+<table>
+<thead>
+<tr>
+<th>Scene</th>
+<th>Init Time</th>
+<th>Render Time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>test.xml</td>
+<td>0.50s</td>
+<td>3.74s</td>
+</tr>
+<tr>
+<td>big_dragon.xml</td>
+<td>23.08s</td>
+<td>32.98s</td>
+</tr>
+<tr>
+<td>closeup.xml</td>
+<td>19.88s</td>
+<td>41.18s</td>
+</tr>
+</tbody>
+</table>
+<p>Initialization time scaled linearly with the number of regions, as
+expected. Because of the nature of Minecraft’s world files, the loading
+process is a bit inefficient.</p>
+<p><code>closeup.xml</code> has 4 regions defined, amounting to a total
+of <code>129,010,458</code> blocks. This takes ~20 seconds to load. The
+efficiency of the SVO algorithm is demonstrated here, even with +100
+million voxels the render time is still manageable.</p>
+<p>We also ran profiling while rendering the <code>closeup.xml</code>
+scene:</p>
+<figure>
+<img src="./images/graph.png" alt="Call time graph" />
+<figcaption aria-hidden="true">Call time graph</figcaption>
+</figure>
+<p>The graph shows how much time each function took to execute at each
+recursion depth. The first huge hump is the SVO ray intersection
+function, the second is the SVO construction and the rest is the world
+loading. A keen observer will notice the <code>log8</code> scaling of
+the SVO functions.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>What a term! 6 big homeworks have been a very daunting yet rewarding
+task for all of us, and now we even used it to create something about
+our passion of Minecraft! Actually, even though SVO idea came from me,
+Alp was more motivated than me due to the possibility of importing
+Minecraft worlds and rendering a Minecraft world using an HW6 ray/path
+tracer, and we really managed to do it. Optimizing the tree further,
+especially the traversal optimization by iterating the rays instead of
+intersecting with every block (which eliminates bounding box
+intersection and is similar to signed distance field ray marching, but
+the steps of node size instead of a distance function), better block
+support (like water or torches) and transformation and instancing
+support to chunks would be very good, yet we had some time constraints
+due to the HW6 unfortunately, causing the project to be less polished
+than we expected. However, this was a great experience, since sometimes
+we engineers have to create our work in such tight time intervals.</p>
+<p>Speaking of engineering, these homeworks and projects have been
+pretty much the pinnacle of the knowledge we have gained in this degree
+program. From managing big codebases and maintaining to time constraints
+and sometimes-problematic-sometimes-not requirement specifications, this
+course has been pretty much <strong>the</strong> “Software Engineering”
+course. Thank you hocam for everything. This is a bit sad word to say
+since it has a meaning of not being able to meet again for some time,
+but farewell!</p>
 <section id="footnotes" class="footnotes footnotes-end-of-document"
 role="doc-endnotes">
 <hr />
